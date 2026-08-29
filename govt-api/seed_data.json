@@ -1,0 +1,125 @@
+{
+  "gst": {
+    "07AAECS1234F1Z5": {
+      "legal_name": "SHAKTI FACILITY SERVICES PRIVATE LIMITED",
+      "trade_name": "Shakti Facility Services",
+      "status": "Active",
+      "registration_date": "2018-06-12",
+      "state": "Delhi",
+      "taxpayer_type": "Regular"
+    },
+    "07AAFCN5678K1Z9": {
+      "legal_name": "NIRMAL SECURITY SOLUTIONS PRIVATE LIMITED",
+      "trade_name": "Nirmal Security Solutions",
+      "status": "Active",
+      "registration_date": "2019-11-03",
+      "state": "Delhi",
+      "taxpayer_type": "Regular"
+    },
+    "07AAKCA9012M1Z7": {
+      "legal_name": "APEX GUARDING CO PRIVATE LIMITED",
+      "trade_name": "Apex Guarding Co",
+      "status": "Active",
+      "registration_date": "2017-02-20",
+      "state": "Delhi",
+      "taxpayer_type": "Regular"
+    }
+  },
+  "pan": {
+    "AAECS1234F": {
+      "name": "SHAKTI FACILITY SERVICES PRIVATE LIMITED",
+      "status": "Valid",
+      "category": "Company",
+      "aadhaar_seeding": "Linked"
+    },
+    "AAFCN5678K": {
+      "name": "NIRMAL SECURITY SOLUTIONS PRIVATE LIMITED",
+      "status": "Valid",
+      "category": "Company",
+      "aadhaar_seeding": "Linked"
+    },
+    "AAKCA9012M": {
+      "name": "APEX GUARDING CO PRIVATE LIMITED",
+      "status": "Valid",
+      "category": "Company",
+      "aadhaar_seeding": "Linked"
+    }
+  },
+  "udyam": {
+    "UDYAM-DL-01-0012345": {
+      "enterprise_name": "SHAKTI FACILITY SERVICES PRIVATE LIMITED",
+      "classification": "Small",
+      "major_activity": "Services",
+      "status": "Active",
+      "date_of_registration": "2020-07-01"
+    },
+    "UDYAM-DL-02-0023456": {
+      "enterprise_name": "NIRMAL SECURITY SOLUTIONS PRIVATE LIMITED",
+      "classification": "Micro",
+      "major_activity": "Services",
+      "status": "Active",
+      "date_of_registration": "2021-01-15"
+    },
+    "UDYAM-DL-03-0034567": {
+      "enterprise_name": "APEX GUARDING CO PRIVATE LIMITED",
+      "classification": "Small",
+      "major_activity": "Services",
+      "status": "Active",
+      "date_of_registration": "2020-09-10"
+    }
+  },
+  "mca": {
+    "U74999DL2018PTC334455": {
+      "company_name": "SHAKTI FACILITY SERVICES PRIVATE LIMITED",
+      "status": "Active",
+      "class": "Private",
+      "date_of_incorporation": "2018-05-30"
+    },
+    "U74999DL2019PTC445566": {
+      "company_name": "NIRMAL SECURITY SOLUTIONS PRIVATE LIMITED",
+      "status": "Active",
+      "class": "Private",
+      "date_of_incorporation": "2019-10-11"
+    },
+    "U74999DL2017PTC223344": {
+      "company_name": "APEX GUARDING CO PRIVATE LIMITED",
+      "status": "Active",
+      "class": "Private",
+      "date_of_incorporation": "2017-01-25"
+    }
+  },
+  "epfo": {
+    "DLCPM0012345000": {
+      "establishment_name": "SHAKTI FACILITY SERVICES PVT LTD",
+      "status": "Active",
+      "coverage_date": "2018-08-01",
+      "valid_until": "2027-03-31",
+      "employees_covered": 240
+    },
+    "DLCPM0023456000": {
+      "establishment_name": "NIRMAL SECURITY SOLUTIONS PVT LTD",
+      "status": "Active",
+      "coverage_date": "2020-01-01",
+      "valid_until": "2026-03-31",
+      "employees_covered": 95
+    },
+    "DLCPM0034567000": {
+      "establishment_name": "APEX GUARDING CO PVT LTD",
+      "status": "Active",
+      "coverage_date": "2017-06-01",
+      "valid_until": "2027-03-31",
+      "employees_covered": 310
+    }
+  },
+  "blacklist": {
+    "AAKCA9012M": [
+      {
+        "authority": "Government e-Marketplace (GeM)",
+        "reason": "Submission of false performance certificates in bid GEM/2025/B/447812",
+        "debarment_start": "2025-11-01",
+        "debarment_end": "2027-10-31",
+        "status": "Active"
+      }
+    ]
+  }
+}
