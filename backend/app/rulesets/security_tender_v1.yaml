@@ -1,0 +1,65 @@
+version: v1
+tender_type: security_services
+rules:
+  - id: R-GST-01
+    requirement_key: gst_active
+    text: "Bidder must hold a valid and active GST registration; GSTIN on certificate must match government records"
+    type: STATUTORY
+    critical: true
+    weight: 3
+    check: gstin
+    mandatory_doc: GST_CERT
+
+  - id: R-PAN-01
+    requirement_key: pan_valid
+    text: "Bidder PAN must be valid and match Income Tax Department records"
+    type: STATUTORY
+    critical: true
+    weight: 3
+    check: pan
+    mandatory_doc: PAN_CARD
+
+  - id: R-UDYAM-01
+    requirement_key: udyam_valid
+    text: "MSE bidders claiming Udyam benefits must hold a valid Udyam registration"
+    type: ELIGIBILITY
+    critical: false
+    weight: 2
+    check: udyam
+    mandatory_doc: UDYAM_CERT
+
+  - id: R-EPFO-01
+    requirement_key: epfo_valid
+    text: "Bidder must have a valid EPFO registration with unexpired coverage (manpower tender)"
+    type: STATUTORY
+    critical: false
+    weight: 2
+    check: epfo
+    mandatory_doc: EPFO_REG
+
+  - id: R-PSARA-01
+    requirement_key: psara_license
+    text: "Bidder must hold a valid PSARA licence for providing private security services in Delhi"
+    type: TENDER_SPECIFIC
+    critical: true
+    weight: 3
+    check: psara_license
+    mandatory_doc: PSARA_LICENSE
+
+  - id: R-BL-01
+    requirement_key: not_blacklisted
+    text: "Bidder must not be blacklisted or debarred by any government authority"
+    type: ELIGIBILITY
+    critical: true
+    weight: 3
+    check: blacklist
+
+  - id: R-LC-01
+    requirement_key: local_content
+    text: "Declared local content must meet the minimum threshold of 50% (Make in India)"
+    type: TENDER_SPECIFIC
+    critical: false
+    weight: 1
+    check: local_content
+    threshold: 50
+    optional: true
