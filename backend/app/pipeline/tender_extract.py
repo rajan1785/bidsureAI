@@ -66,6 +66,12 @@ CUSTOM_CLAUSE_PATTERNS = [
      "Bidder must demonstrate the required average annual turnover{detail}"),
     (r"minimum wages?",
      "Quoted rates must not be below the government-notified minimum wages"),
+    (r"performance security|performance bank guarant|epbg|security deposit",
+     "Successful bidder must furnish performance security as specified{detail}"),
+    (r"integrity pact",
+     "Bidder must sign and submit the Integrity Pact"),
+    (r"land border|rule 144\s*\(xi\)",
+     "Bidder from a land-border country must be registered with the competent authority (GFR Rule 144(xi))"),
 ]
 
 
@@ -84,4 +90,4 @@ def extract_custom_clauses(tender_text: str) -> list[dict]:
             "priority": "MANDATORY",
             "rule_key": "",  # no built-in rule -> the rule forge drafts one
         })
-    return reqs[:4]
+    return reqs[:6]
