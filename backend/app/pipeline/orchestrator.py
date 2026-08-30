@@ -17,6 +17,7 @@ from app.models import (
     ExtractedField,
     GovtRecord,
     Recommendation,
+    Requirement,
     RiskAssessment,
     Tender,
 )
@@ -25,7 +26,7 @@ from app.pipeline.crosscheck import crosscheck
 from app.pipeline.extract import extract_fields
 from app.pipeline.ocr import extract_text
 from app.pipeline.recommend import recommend
-from app.pipeline.rules import evaluate, load_ruleset
+from app.pipeline.rules import evaluate, filter_ruleset, load_ruleset
 from app.pipeline.scoring import score
 from app.pipeline.verify import verify_identifiers
 
@@ -95,7 +96,12 @@ def run_pipeline(bid_id: int):
         # --- Rules ---
         _stage(db, bid, "RULES")
         ruleset_name = (tender.ruleset_version or "security_tender_v1@v1").split("@")[0]
-        ruleset = load_ruleset(ruleset_name)
+        approved_keys = {
+            r.rule_key
+            for r in db.query(Requirement).filter_by(tender_id=tender.id, approved=1).all()
+            if r.rule_key
+        }
+        ruleset = filter_ruleset(load_ruleset(ruleset_name), approved_keys)
         results = evaluate(ruleset, checks, list(extracted_by_doc.keys()))
         for r in results:
             db.add(ComplianceResult(

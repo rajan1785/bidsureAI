@@ -21,6 +21,20 @@ def load_ruleset(name: str = "security_tender_v1") -> dict:
     return yaml.safe_load((RULESETS_DIR / f"{name}.yaml").read_text())
 
 
+def filter_ruleset(ruleset: dict, approved_rule_keys: set[str]) -> dict:
+    """Keep only rules whose requirement the officer approved (FR-T05/T06).
+
+    An empty key set means the tender has no rule-linked approved requirements
+    (legacy data); fall back to the full ruleset rather than evaluating nothing.
+    """
+    if not approved_rule_keys:
+        return ruleset
+    return {
+        **ruleset,
+        "rules": [r for r in ruleset["rules"] if r["requirement_key"] in approved_rule_keys],
+    }
+
+
 def evaluate(ruleset: dict, checks: list[dict], docs_present: list[str]) -> list[dict]:
     """checks: output of crosscheck(). docs_present: doc types uploaded.
 
