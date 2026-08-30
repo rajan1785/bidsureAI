@@ -157,7 +157,7 @@ def run_pipeline(bid_id: int):
 
         # --- Recommendation ---
         _stage(db, bid, "RECOMMEND")
-        rec = recommend(bidder.legal_name, results, assessment)
+        rec = recommend(bidder.legal_name, results, assessment, doc_texts)
         db.add(Recommendation(bid_id=bid.id, text=rec["text"], model=rec["model"],
                               grounded_refs=rec["grounded_refs"]))
         db.commit()

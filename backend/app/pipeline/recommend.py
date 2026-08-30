@@ -18,7 +18,39 @@ Results:
 """
 
 
-def recommend(bidder_name: str, results: list[dict], assessment: dict) -> dict:
+def _retrieve_evidence(results: list[dict], doc_texts: dict[str, str]) -> list[str]:
+    """RAG: semantic search over bidder document chunks for each problem
+    requirement, using the local embedding model (all-MiniLM-L6-v2)."""
+    try:
+        from app.ml.embedder import backend_name, chunk, top_k
+    except Exception:
+        return []
+    corpus, sources = [], []
+    for fname, text in doc_texts.items():
+        for c in chunk(text):
+            corpus.append(c)
+            sources.append(fname)
+    if not corpus:
+        return []
+    lines = []
+    problems = [r for r in results
+                if r["status"] in ("Review Required", "Non-Compliant")][:4]
+    for r in problems:
+        hits = top_k(r["requirement_text"], corpus, k=1)
+        if hits and hits[0][1] > 0.25:
+            i, score = hits[0]
+            lines.append(
+                f"[{r['requirement_key']}] closest evidence ({sources[i]}, "
+                f"similarity {score:.2f}): \"{corpus[i][:140]}\""
+            )
+    if lines:
+        lines.insert(0, f"Evidence retrieved by semantic search ({backend_name()}):")
+    return lines
+
+
+def recommend(bidder_name: str, results: list[dict], assessment: dict,
+              doc_texts: dict[str, str] | None = None) -> dict:
+    evidence_lines = _retrieve_evidence(results, doc_texts or {})
     results_text = "\n".join(
         f"- {r['requirement_key']}: {r['status']} — {r['reason']}" for r in results
     )
@@ -38,7 +70,9 @@ def recommend(bidder_name: str, results: list[dict], assessment: dict) -> dict:
                 else ""
             )
         )
-        return {"text": text.strip(), "model": "gemini-2.0-flash", "grounded_refs": refs}
+        if evidence_lines:
+            text += "\n\n" + "\n".join(evidence_lines)
+        return {"text": text.strip(), "model": "gemini-2.0-flash + minilm-rag", "grounded_refs": refs}
 
     # Deterministic writer
     problems = [r for r in results if r["status"] in ("Non-Compliant", "Review Required")]
@@ -61,4 +95,5 @@ def recommend(bidder_name: str, results: list[dict], assessment: dict) -> dict:
     else:
         lines.append("Recommendation: all verifiable requirements are compliant; bidder appears qualified subject to officer review. Final decision rests with the Procurement Officer.")
 
-    return {"text": "\n".join(lines), "model": "deterministic-fallback", "grounded_refs": refs}
+    lines.extend(evidence_lines)
+    return {"text": "\n".join(lines), "model": "rules + minilm-rag", "grounded_refs": refs}
