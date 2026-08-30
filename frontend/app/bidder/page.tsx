@@ -47,9 +47,20 @@ export default function BidderPortal() {
     return () => clearInterval(t);
   }, [bidId, pipeline]);
 
+  const ID_CHECKS: [keyof typeof form, RegExp, string][] = [
+    ["pan", /^[A-Z]{5}\d{4}[A-Z]$/, "PAN should look like AAAAA9999A"],
+    ["gstin", /^\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]Z[A-Z\d]$/, "GSTIN should be 15 characters like 07AAECS1234F1Z5"],
+    ["udyam", /^UDYAM-[A-Z]{2}-\d{2}-\d{7}$/, "Udyam number should look like UDYAM-DL-01-0012345"],
+    ["epfo_code", /^[A-Z]{5}\d{10}$/, "EPFO code should look like DLCPM0012345000"],
+  ];
+
   async function register(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    for (const [key, pattern, message] of ID_CHECKS) {
+      const value = form[key].trim().toUpperCase();
+      if (value && !pattern.test(value)) return setError(message);
+    }
     try {
       const bidder = await api.createBidder(form);
       const bid = await api.createBid(tenderId!, bidder.id);
