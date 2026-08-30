@@ -124,8 +124,9 @@ def crosscheck(extracted_by_doc: dict, registered: dict, govt_records: list,
                 add(check_name, lic["value"] if lic else "present", None, None, "N/A", "MATCH",
                     "Licence document present" + (f", valid until {vu.isoformat()}" if vu else ""))
 
-    # --- local content declaration ---
-    lc = _field(extracted_by_doc, "LOCAL_CONTENT_DECL", "local_content_pct")
+    # --- local content declaration (may live in a dedicated decl or a company profile) ---
+    lc = (_field(extracted_by_doc, "LOCAL_CONTENT_DECL", "local_content_pct")
+          or _field(extracted_by_doc, "COMPANY_PROFILE", "local_content_pct"))
     if lc:
         add("local_content", lc["value"], None, None, "N/A", "MATCH",
             f"Declared local content {lc['value']}%")

@@ -30,6 +30,7 @@ RELEVANT = {
     "PSARA_LICENSE": ["license_no", "valid_until", "date"],
     "OEM_AUTH": ["date"],
     "LOCAL_CONTENT_DECL": ["local_content_pct", "pan", "date"],
+    "COMPANY_PROFILE": ["local_content_pct", "pan", "date"],
     "ITR_ACK": ["pan", "date"],
     "OTHER": ["gstin", "pan", "udyam", "date"],
 }
