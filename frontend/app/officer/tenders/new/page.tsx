@@ -65,7 +65,7 @@ export default function NewTender() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="file">Tender Document (PDF)</Label>
-              <Input id="file" type="file" accept=".pdf,.txt,.doc,.docx"
+              <Input id="file" type="file" accept=".pdf,.txt,.docx"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}

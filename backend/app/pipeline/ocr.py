@@ -36,7 +36,26 @@ def extract_text(path: str) -> dict:
     if suffix in (".txt", ".md"):
         return {"text": p.read_text(errors="ignore"), "method": "plain", "confidence": 1.0}
 
+    if suffix == ".docx":
+        return _docx(p)
+
     return {"text": "", "method": "unsupported", "confidence": 0.0}
+
+
+def _docx(p: Path) -> dict:
+    # .docx is a zip; pull paragraph text out of word/document.xml with stdlib only
+    import re
+    import zipfile
+    from html import unescape
+
+    try:
+        with zipfile.ZipFile(p) as z:
+            xml = z.read("word/document.xml").decode("utf-8", errors="ignore")
+        xml = re.sub(r"</w:p>", "\n", xml)
+        text = unescape(re.sub(r"<[^>]+>", "", xml)).strip()
+        return {"text": text, "method": "docx", "confidence": 0.95 if text else 0.0}
+    except Exception:
+        return {"text": "", "method": "docx_failed", "confidence": 0.0}
 
 
 def _tesseract(p: Path) -> dict:

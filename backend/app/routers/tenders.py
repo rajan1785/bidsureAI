@@ -32,6 +32,15 @@ def create_tender(
     tender.file_path = str(dest)
 
     ocr = extract_text(str(dest))
+    if not ocr["text"].strip():
+        db.delete(tender)
+        db.commit()
+        dest.unlink(missing_ok=True)
+        raise HTTPException(
+            400,
+            "Could not read any text from this document. Upload a PDF, DOCX or TXT "
+            "tender with a text layer (scanned images need Tesseract installed).",
+        )
     reqs = extract_requirements(ocr["text"])
     for r in reqs:
         db.add(Requirement(tender_id=tender.id, text=r["text"], type=r["type"],
