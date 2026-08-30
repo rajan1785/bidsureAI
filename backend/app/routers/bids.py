@@ -76,7 +76,8 @@ def document_file(doc_id: int, db: Session = Depends(get_db)):
     doc = db.get(Document, doc_id)
     if not doc:
         raise HTTPException(404, "document not found")
-    return FileResponse(doc.file_path, filename=doc.filename)
+    return FileResponse(doc.file_path, filename=doc.filename,
+                        content_disposition_type="inline")
 
 
 @router.get("/{bid_id}/status")

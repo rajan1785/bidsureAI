@@ -5,6 +5,7 @@ import { api, BidDetail, riskColor, statusColor } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -14,6 +15,7 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
   const [bid, setBid] = useState<BidDetail | null>(null);
   const [remarks, setRemarks] = useState("");
   const [saved, setSaved] = useState("");
+  const [viewer, setViewer] = useState<{ id: number; filename: string } | null>(null);
 
   const refresh = useCallback(async () => {
     setBid(await api.bidDetail(bidId));
@@ -122,11 +124,12 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
             <Card key={d.id}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center justify-between">
-                  <a href={`http://127.0.0.1:8000/api/v1/bids/documents/${d.id}/file`}
-                     target="_blank" rel="noreferrer"
-                     className="text-blue-700 hover:underline">
-                    {d.filename} ↗
-                  </a>
+                  <button
+                    onClick={() => setViewer({ id: d.id, filename: d.filename })}
+                    className="text-blue-700 hover:underline text-left"
+                  >
+                    {d.filename} 🔍
+                  </button>
                   <span className="flex gap-2">
                     <Badge variant="secondary">{d.doc_type}</Badge>
                     <Badge variant={d.status === "PROCESSED" ? "outline" : "destructive"}>{d.status}</Badge>
@@ -219,6 +222,28 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!viewer} onOpenChange={(o) => !o && setViewer(null)}>
+        <DialogContent className="sm:max-w-5xl w-[92vw] h-[88vh] flex flex-col p-4">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-sm font-mono flex items-center gap-3">
+              {viewer?.filename}
+              <a href={`http://127.0.0.1:8000/api/v1/bids/documents/${viewer?.id}/file`}
+                 target="_blank" rel="noreferrer"
+                 className="text-xs text-blue-700 hover:underline font-sans">
+                open in new tab ↗
+              </a>
+            </DialogTitle>
+          </DialogHeader>
+          {viewer && (
+            <iframe
+              src={`http://127.0.0.1:8000/api/v1/bids/documents/${viewer.id}/file`}
+              className="flex-1 w-full rounded-md border bg-white"
+              title={viewer.filename}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
