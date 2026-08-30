@@ -49,6 +49,8 @@ def evaluate(ruleset: dict, checks: list[dict], docs_present: list[str]) -> list
     for rule in ruleset["rules"]:
         check = by_check.get(rule["check"])
         evidence = dict(check) if check else {}
+        if rule.get("legal_basis"):
+            evidence["legal_basis"] = rule["legal_basis"]
         base = {
             "requirement_key": rule["requirement_key"],
             "requirement_text": rule["text"],

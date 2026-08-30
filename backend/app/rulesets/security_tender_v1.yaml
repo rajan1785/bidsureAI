@@ -2,6 +2,7 @@ version: v1
 tender_type: security_services
 rules:
   - id: R-GST-01
+    legal_basis: "CGST Act 2017, Sections 22-25 (GST Registration)"
     requirement_key: gst_active
     text: "Bidder must hold a valid and active GST registration; GSTIN on certificate must match government records"
     type: STATUTORY
@@ -11,6 +12,7 @@ rules:
     mandatory_doc: GST_CERT
 
   - id: R-PAN-01
+    legal_basis: "Income Tax Act 1961, Section 139A (PAN)"
     requirement_key: pan_valid
     text: "Bidder PAN must be valid and match Income Tax Department records"
     type: STATUTORY
@@ -20,6 +22,7 @@ rules:
     mandatory_doc: PAN_CARD
 
   - id: R-UDYAM-01
+    legal_basis: "Public Procurement Policy for MSEs Order 2012 (MSMED Act 2006)"
     requirement_key: udyam_valid
     text: "MSE bidders claiming Udyam benefits must hold a valid Udyam registration"
     type: ELIGIBILITY
@@ -29,6 +32,7 @@ rules:
     mandatory_doc: UDYAM_CERT
 
   - id: R-EPFO-01
+    legal_basis: "EPF & MP Act 1952, Section 1(3) (EPF Registration)"
     requirement_key: epfo_valid
     text: "Bidder must have a valid EPFO registration with unexpired coverage (manpower tender)"
     type: STATUTORY
@@ -38,6 +42,7 @@ rules:
     mandatory_doc: EPFO_REG
 
   - id: R-PSARA-01
+    legal_basis: "PSARA Act 2005, Section 4 (Security Agency Licence)"
     requirement_key: psara_license
     text: "Bidder must hold a valid PSARA licence for providing private security services in Delhi"
     type: TENDER_SPECIFIC
@@ -47,6 +52,7 @@ rules:
     mandatory_doc: PSARA_LICENSE
 
   - id: R-BL-01
+    legal_basis: "CVC Guidelines / GFR 2017 Rule 151 (Debarment)"
     requirement_key: not_blacklisted
     text: "Bidder must not be blacklisted or debarred by any government authority"
     type: ELIGIBILITY
@@ -55,6 +61,7 @@ rules:
     check: blacklist
 
   - id: R-LC-01
+    legal_basis: "Public Procurement (Preference to Make in India) Order 2017"
     requirement_key: local_content
     text: "Declared local content must meet the minimum threshold of 50% (Make in India)"
     type: TENDER_SPECIFIC
