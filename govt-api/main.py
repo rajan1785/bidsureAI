@@ -47,37 +47,37 @@ def not_found(source: str, identifier: str):
     )
 
 
-@app.get("/gst/{gstin}")
+@app.get("/api/v1/gstn/verify/{gstin}")
 def gst(gstin: str):
     rec = SEED["gst"].get(gstin.upper())
     return envelope("GST", gstin.upper(), rec) if rec else not_found("GST", gstin.upper())
 
 
-@app.get("/pan/{pan}")
+@app.get("/api/v1/pan/verify/{pan}")
 def pan(pan: str):
     rec = SEED["pan"].get(pan.upper())
     return envelope("PAN", pan.upper(), rec) if rec else not_found("PAN", pan.upper())
 
 
-@app.get("/udyam/{udyam_no}")
+@app.get("/api/v1/udyam/verify/{udyam_no}")
 def udyam(udyam_no: str):
     rec = SEED["udyam"].get(udyam_no.upper())
     return envelope("UDYAM", udyam_no.upper(), rec) if rec else not_found("UDYAM", udyam_no.upper())
 
 
-@app.get("/mca/{cin}")
+@app.get("/api/v1/mca/company/{cin}")
 def mca(cin: str):
     rec = SEED["mca"].get(cin.upper())
     return envelope("MCA", cin.upper(), rec) if rec else not_found("MCA", cin.upper())
 
 
-@app.get("/epfo/{est_code}")
+@app.get("/api/v1/epfo/establishment/{est_code}")
 def epfo(est_code: str):
     rec = SEED["epfo"].get(est_code.upper())
     return envelope("EPFO", est_code.upper(), rec) if rec else not_found("EPFO", est_code.upper())
 
 
-@app.get("/blacklist/{pan}")
+@app.get("/api/v1/debarment/check/{pan}")
 def blacklist(pan: str):
     # Empty list = clean. This endpoint never 404s: absence of a record is
     # a positive "no debarment found", unlike the identity sources above.
