@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ComplyGeM",
+  title: "BidSure AI",
   description: "AI-powered bid compliance verification for GeM procurement",
 };
 
@@ -29,10 +29,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-blue-700 text-white font-bold">
-                C
+                B
               </span>
               <span className="font-semibold text-lg tracking-tight">
-                Comply<span className="text-blue-700">GeM</span>
+                Bid<span className="text-blue-700">Sure AI</span>
               </span>
             </Link>
             <nav className="flex items-center gap-5 text-sm font-medium text-slate-600">
@@ -44,7 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </header>
         <main className="mx-auto max-w-6xl w-full px-4 py-8 flex-1">{children}</main>
         <footer className="border-t bg-white py-4 text-center text-xs text-slate-500">
-          ComplyGeM prototype — SIH 2026 · Government verifications use a mock API replica
+          BidSure AI prototype — SIH 2026 · Government verifications use a mock API replica
         </footer>
       </body>
     </html>

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.db import init_db
 
-app = FastAPI(title="ComplyGeM Backend", version="1.0.0")
+app = FastAPI(title="BidSure AI Backend", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,

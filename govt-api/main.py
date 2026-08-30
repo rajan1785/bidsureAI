@@ -1,4 +1,4 @@
-"""ComplyGeM Government API Replica.
+"""BidSure AI - Government API Replica.
 
 Mock adapters for representative government data sources (GST, PAN/IT,
 Udyam, MCA, EPFO, blacklist/debarment). Response envelopes are modeled on
@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 SEED = json.loads((Path(__file__).parent / "seed_data.json").read_text())
 
 app = FastAPI(
-    title="ComplyGeM Government API Replica",
+    title="BidSure AI Government API Replica",
     description="Mock replica of government verification sources (API Setu style). "
     "All data is synthetic. mock=true on every response.",
     version="1.0.0",

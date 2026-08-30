@@ -12,7 +12,7 @@ export default function Home() {
           Verify every bid. <span className="text-blue-700">Trust every decision.</span>
         </h1>
         <p className="mx-auto max-w-2xl text-slate-600">
-          ComplyGeM extracts tender requirements, reads bidder documents, verifies them
+          BidSure AI extracts tender requirements, reads bidder documents, verifies them
           against government sources, and gives procurement officers an evidence-backed
           compliance report — with the final decision always in human hands.
         </p>
