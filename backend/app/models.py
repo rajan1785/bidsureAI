@@ -40,6 +40,28 @@ class Requirement(Base):
     tender: Mapped["Tender"] = relationship(back_populates="requirements")
 
 
+class DynamicRule(Base):
+    """AI-drafted rule for a tender-specific clause no built-in rule covers.
+
+    Drafted at tender upload, evaluated only after the officer approves the
+    linked requirement. Executed by the deterministic executors in rule_forge.
+    """
+    __tablename__ = "dynamic_rules"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tender_id: Mapped[int] = mapped_column(ForeignKey("tenders.id"))
+    requirement_id: Mapped[int] = mapped_column(ForeignKey("requirements.id"))
+    rule_type: Mapped[str] = mapped_column(String)  # DOC_PRESENCE | THRESHOLD | DECLARATION
+    keywords: Mapped[list] = mapped_column(JSON, default=list)
+    threshold: Mapped[float] = mapped_column(Float, nullable=True)
+    unit: Mapped[str] = mapped_column(String, default="")
+    comparator: Mapped[str] = mapped_column(String, default=">=")
+    weight: Mapped[int] = mapped_column(Integer, default=1)
+    critical: Mapped[int] = mapped_column(Integer, default=0)
+    version: Mapped[str] = mapped_column(String, default="dyn-v1")
+    approved: Mapped[int] = mapped_column(Integer, default=0)
+    legal_basis: Mapped[dict] = mapped_column(JSON, nullable=True)
+
+
 class Bidder(Base):
     __tablename__ = "bidders"
     id: Mapped[int] = mapped_column(primary_key=True)
