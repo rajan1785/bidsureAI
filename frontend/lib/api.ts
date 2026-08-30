@@ -6,6 +6,20 @@ async function req(path: string, init?: RequestInit) {
   return r.json();
 }
 
+export type LegalBasis = { source: string; provision: string; title: string };
+
+export type DynamicRule = {
+  id: number;
+  rule_type: string;
+  keywords: string[];
+  threshold: number | null;
+  unit: string;
+  comparator: string;
+  version: string;
+  approved: boolean;
+  legal_basis: LegalBasis | null;
+};
+
 export type Requirement = {
   id: number;
   text: string;
@@ -13,6 +27,7 @@ export type Requirement = {
   priority: string;
   rule_key: string;
   approved: boolean;
+  dynamic_rule: DynamicRule | null;
 };
 
 export type Tender = {
@@ -48,7 +63,7 @@ export type BidDetail = {
     fields: { field: string; value: string; confidence: number; evidence_location: string }[];
   }[];
   govt_records: { source: string; identifier: string; status: string; payload: Record<string, unknown>; retrieved_at: string; mock: boolean }[];
-  results: { requirement_key: string; requirement_text: string; status: string; reason: string; rule_id: string; rule_version: string; critical: boolean }[];
+  results: { requirement_key: string; requirement_text: string; status: string; reason: string; rule_id: string; rule_version: string; critical: boolean; evidence: { legal_basis?: LegalBasis | string } & Record<string, unknown> }[];
   risk: { score: number; risk: string; factors: string[] } | null;
   recommendation: { text: string; model: string; grounded_refs: string[] } | null;
   decision: { decision: string; remarks: string; officer: string; timestamp: string } | null;

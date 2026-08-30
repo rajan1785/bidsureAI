@@ -97,6 +97,13 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
               <p className="text-sm text-slate-600">{r.reason}</p>
               <p className="text-xs text-slate-400">
                 Rule {r.rule_id} ({r.rule_version}){r.critical && " · CRITICAL"}
+                {r.evidence?.legal_basis && (
+                  <span className="ml-2 text-amber-700">
+                    § {typeof r.evidence.legal_basis === "string"
+                      ? r.evidence.legal_basis
+                      : `${r.evidence.legal_basis.source}, ${r.evidence.legal_basis.provision}`}
+                  </span>
+                )}
               </p>
             </div>
           ))}

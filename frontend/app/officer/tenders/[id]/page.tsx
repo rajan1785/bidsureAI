@@ -98,6 +98,19 @@ export default function TenderReview({ params }: { params: Promise<{ id: string 
                     rule: {r.rule_key}
                   </span>
                 )}
+                {r.dynamic_rule && (
+                  <span className="px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 font-medium">
+                    ✨ AI-drafted rule · {r.dynamic_rule.rule_type.toLowerCase().replace("_", " ")}
+                    {r.dynamic_rule.threshold !== null &&
+                      ` ${r.dynamic_rule.comparator} ${r.dynamic_rule.threshold.toLocaleString()} ${r.dynamic_rule.unit}`}
+                    {" · checks: "}{r.dynamic_rule.keywords.join(", ")}
+                  </span>
+                )}
+                {r.dynamic_rule?.legal_basis && (
+                  <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                    § {r.dynamic_rule.legal_basis.source}, {r.dynamic_rule.legal_basis.provision}
+                  </span>
+                )}
               </div>
             </div>
           ))}
