@@ -16,7 +16,7 @@ from pathlib import Path
 import requests
 
 REPO = Path(__file__).parents[1]
-API = "http://127.0.0.1:8000"
+API = "http://127.0.0.1:8000/api/v1"
 DB = REPO / "backend" / "app.db"
 
 BIDDERS = {
@@ -49,7 +49,7 @@ def wipe():
 
 def check_services():
     try:
-        requests.get(f"{API}/health", timeout=3)
+        requests.get("http://127.0.0.1:8000/health", timeout=3)
     except Exception:
         sys.exit("backend not running on :8000 — start it first (scripts/start_all.sh)")
 

@@ -48,7 +48,7 @@ def govt_api():
     )
     for _ in range(50):
         try:
-            httpx.get("http://127.0.0.1:9001/blacklist/AAECS1234F", timeout=1)
+            httpx.get("http://127.0.0.1:9001/api/v1/debarment/check/AAECS1234F", timeout=1)
             break
         except Exception:
             time.sleep(0.2)
@@ -62,7 +62,7 @@ def test_full_flow_bidder_a(tmp_path):
     tender_file = tmp_path / "tender.txt"
     tender_file.write_text(TENDER_TEXT)
     r = client.post(
-        "/tenders",
+        "/api/v1/tenders",
         data={"title": "Security Services Tender", "organization": "University of Delhi"},
         files={"file": ("tender.txt", tender_file.read_bytes(), "text/plain")},
     )
@@ -73,29 +73,29 @@ def test_full_flow_bidder_a(tmp_path):
     assert "gst_active" in keys and "psara_license" in keys
 
     # 2. approve
-    r = client.post(f"/tenders/{tender['id']}/approve")
+    r = client.post(f"/api/v1/tenders/{tender['id']}/approve")
     assert r.json()["status"] == "APPROVED"
 
     # 3. bidder + bid + docs
-    r = client.post("/bidders", json={
+    r = client.post("/api/v1/bidders", json={
         "legal_name": "Shakti Facility Services Pvt Ltd", "pan": "AAECS1234F",
         "gstin": "07AAECS1234F1Z5", "udyam": "UDYAM-DL-01-0012345",
         "epfo_code": "DLCPM0012345000"})
     bidder_id = r.json()["id"]
-    r = client.post("/bids", json={"tender_id": tender["id"], "bidder_id": bidder_id})
+    r = client.post("/api/v1/bids", json={"tender_id": tender["id"], "bidder_id": bidder_id})
     bid_id = r.json()["id"]
     for name, content in DOCS_A.items():
-        r = client.post(f"/bids/{bid_id}/documents",
+        r = client.post(f"/api/v1/bids/{bid_id}/documents",
                         files={"file": (name, content.encode(), "text/plain")})
         assert r.status_code == 200
 
     # 4. submit -> pipeline runs (TestClient executes background task synchronously)
-    r = client.post(f"/bids/{bid_id}/submit")
+    r = client.post(f"/api/v1/bids/{bid_id}/submit")
     assert r.status_code == 200
-    assert client.get(f"/bids/{bid_id}/status").json()["pipeline_status"] == "DONE"
+    assert client.get(f"/api/v1/bids/{bid_id}/status").json()["pipeline_status"] == "DONE"
 
     # 5. drill-down
-    detail = client.get(f"/bids/{bid_id}").json()
+    detail = client.get(f"/api/v1/bids/{bid_id}").json()
     statuses = {x["requirement_key"]: x["status"] for x in detail["results"]}
     assert statuses["gst_active"] == "Compliant"
     assert statuses["psara_license"] == "Compliant"
@@ -106,11 +106,11 @@ def test_full_flow_bidder_a(tmp_path):
     assert any(g["source"] == "GST" and g["mock"] for g in detail["govt_records"])
 
     # 6. comparison + decision + audit
-    comp = client.get(f"/tenders/{tender['id']}/comparison").json()
+    comp = client.get(f"/api/v1/tenders/{tender['id']}/comparison").json()
     assert comp[0]["bidder"].startswith("Shakti")
-    r = client.post(f"/bids/{bid_id}/decision",
+    r = client.post(f"/api/v1/bids/{bid_id}/decision",
                     json={"decision": "Qualified", "remarks": "All checks passed"})
     assert r.json()["ok"]
-    audit = client.get("/audit").json()
+    audit = client.get("/api/v1/audit").json()
     actions = {e["action"] for e in audit}
     assert {"TENDER_CREATED", "BID_SUBMITTED", "PIPELINE_DONE", "DECISION_RECORDED"} <= actions
