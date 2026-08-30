@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.audit import log_event
 from app.db import UPLOADS_DIR, get_db
-from app.models import Requirement, Tender
+from app.models import DynamicRule, Requirement, Tender
 from app.pipeline.ocr import extract_text
+from app.pipeline.rule_forge import draft_rule
 from app.pipeline.tender_extract import extract_requirements
 
 router = APIRouter(prefix="/tenders", tags=["tenders"])
@@ -42,11 +43,26 @@ def create_tender(
             "tender with a text layer (scanned images need Tesseract installed).",
         )
     reqs = extract_requirements(ocr["text"])
+    drafted = 0
     for r in reqs:
-        db.add(Requirement(tender_id=tender.id, text=r["text"], type=r["type"],
-                           priority=r["priority"], rule_key=r["rule_key"]))
+        req = Requirement(tender_id=tender.id, text=r["text"], type=r["type"],
+                          priority=r["priority"], rule_key=r["rule_key"])
+        db.add(req)
+        db.flush()
+        if not r["rule_key"]:
+            # no built-in rule covers this clause -> forge drafts one
+            d = draft_rule(r["text"])
+            db.add(DynamicRule(tender_id=tender.id, requirement_id=req.id,
+                               rule_type=d["rule_type"], keywords=d["keywords"],
+                               threshold=d["threshold"], unit=d["unit"],
+                               comparator=d["comparator"],
+                               legal_basis=d.get("legal_basis")))
+            drafted += 1
     tender.status = "REVIEW"
     db.commit()
+    if drafted:
+        log_event(db, "system", "DYNAMIC_RULES_DRAFTED", f"tender:{tender.id}",
+                  f"{drafted} rule(s) drafted for tender-specific clauses")
     log_event(db, "officer", "TENDER_CREATED", f"tender:{tender.id}", title)
     log_event(db, "system", "REQUIREMENTS_EXTRACTED", f"tender:{tender.id}",
               f"{len(reqs)} candidate requirements (ocr={ocr['method']})")
@@ -89,6 +105,8 @@ def delete_requirement(tender_id: int, req_id: int, db: Session = Depends(get_db
     r = db.get(Requirement, req_id)
     if not r or r.tender_id != tender_id:
         raise HTTPException(404, "requirement not found")
+    for dr in db.query(DynamicRule).filter_by(requirement_id=req_id).all():
+        db.delete(dr)
     db.delete(r)
     db.commit()
     log_event(db, "officer", "REQUIREMENT_DELETED", f"requirement:{req_id}")
@@ -102,6 +120,8 @@ def approve_tender(tender_id: int, db: Session = Depends(get_db)):
         raise HTTPException(404, "tender not found")
     for r in db.query(Requirement).filter_by(tender_id=tender_id).all():
         r.approved = 1
+    for dr in db.query(DynamicRule).filter_by(tender_id=tender_id).all():
+        dr.approved = 1
     t.status = "APPROVED"
     t.ruleset_version = "security_tender_v1@v1"
     db.commit()
@@ -112,12 +132,22 @@ def approve_tender(tender_id: int, db: Session = Depends(get_db)):
 
 def _tender_dict(t: Tender, db: Session):
     reqs = db.query(Requirement).filter_by(tender_id=t.id).all()
+    dyn = {d.requirement_id: d for d in db.query(DynamicRule).filter_by(tender_id=t.id).all()}
+    def _dyn(r):
+        d = dyn.get(r.id)
+        if not d:
+            return None
+        return {"id": d.id, "rule_type": d.rule_type, "keywords": d.keywords,
+                "threshold": d.threshold, "unit": d.unit, "comparator": d.comparator,
+                "version": d.version, "approved": bool(d.approved),
+                "legal_basis": d.legal_basis}
     return {
         "id": t.id, "title": t.title, "organization": t.organization, "ref_no": t.ref_no,
         "status": t.status, "ruleset_version": t.ruleset_version, "created_at": t.created_at,
         "requirements": [
             {"id": r.id, "text": r.text, "type": r.type, "priority": r.priority,
-             "rule_key": r.rule_key, "approved": bool(r.approved)}
+             "rule_key": r.rule_key, "approved": bool(r.approved),
+             "dynamic_rule": _dyn(r)}
             for r in reqs
         ],
     }
