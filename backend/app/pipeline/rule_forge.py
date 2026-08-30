@@ -49,7 +49,7 @@ _STOPWORDS = {
     "three", "two", "one", "along", "form", "may", "any", "all", "have", "has",
     "demonstrate", "required", "specified", "submitted", "submit", "quoted",
     "rates", "below", "government", "notified", "services", "this", "that",
-    "comply", "against", "under", "upon",
+    "comply", "against", "under", "upon", "successful", "furnish",
 }
 
 
@@ -151,12 +151,15 @@ def evaluate_dynamic(rule: dict, doc_texts: dict[str, str]) -> dict:
     doc_texts: {filename: extracted text}. Returns {status, reason, evidence}.
     Missing evidence -> Review Required (never a silent pass, FR-G04 spirit)."""
     keywords = [k.lower() for k in rule["keywords"]]
-    hits = []  # (filename, keyword)
+    # A document qualifies only if it matches enough DISTINCT keywords
+    # (2-of-N for multi-keyword rules) — one generic word is not evidence.
+    need = min(2, len(keywords))
+    hits = []  # (filename, first matched keyword) per qualifying document
     for fname, text in doc_texts.items():
         low = text.lower()
-        for k in keywords:
-            if re.search(rf"\b{re.escape(k)}", low):
-                hits.append((fname, k))
+        matched = [k for k in keywords if re.search(rf"\b{re.escape(k)}", low)]
+        if len(matched) >= need:
+            hits.append((fname, matched[0]))
 
     if rule["rule_type"] == "THRESHOLD" and rule.get("threshold") is not None:
         for fname, k in hits:

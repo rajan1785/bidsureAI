@@ -9,8 +9,8 @@ built-in executor for the same rule type — the demo can never crash here.
 """
 import re
 
-SAFE_GLOBALS = {"re": re, "float": float, "len": len, "max": max, "abs": abs,
-                "str": str, "round": round, "__builtins__": {}}
+SAFE_GLOBALS = {"re": re, "float": float, "len": len, "max": max, "min": min,
+                "abs": abs, "str": str, "round": round, "__builtins__": {}}
 
 _HELPERS = '''\
 def _parse_number(raw, unit):
@@ -24,12 +24,14 @@ def _parse_number(raw, unit):
 
 
 def _find_hits(doc_texts, keywords):
+    # a document qualifies only with enough distinct keyword matches (2-of-N)
+    need = min(2, len(keywords))
     hits = []
     for fname, text in doc_texts.items():
         low = text.lower()
-        for kw in keywords:
-            if re.search("\\\\b" + re.escape(kw), low):
-                hits.append((fname, kw))
+        matched = [kw for kw in keywords if re.search("\\\\b" + re.escape(kw), low)]
+        if len(matched) >= need:
+            hits.append((fname, matched[0]))
     return hits
 '''
 
