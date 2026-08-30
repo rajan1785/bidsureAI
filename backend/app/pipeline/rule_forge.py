@@ -31,9 +31,22 @@ def match_rulebook(clause: str) -> dict | None:
         score = sum(1 for k in prov["keywords"] if k in low)
         if score > best_score:
             best, best_score = prov, score
-    if best is None:
-        return None
-    return {"source": best["source"], "provision": best["provision"], "title": best["title"]}
+    if best is not None:
+        return {"source": best["source"], "provision": best["provision"],
+                "title": best["title"], "matched_via": "keyword"}
+    # No keyword hit: semantic match with the local embedding model (RAG over
+    # the rulebook). High threshold so unrelated clauses stay unmatched.
+    try:
+        from app.ml.embedder import top_k
+        corpus = [f"{p['title']}. {p['summary']}" for p in RULEBOOK]
+        hits = top_k(clause, corpus, k=1)
+        if hits and hits[0][1] >= 0.35:
+            prov = RULEBOOK[hits[0][0]]
+            return {"source": prov["source"], "provision": prov["provision"],
+                    "title": prov["title"], "matched_via": "semantic"}
+    except Exception:
+        pass
+    return None
 
 _NUM = r"(?:rs\.?\s*)?([\d,]+(?:\.\d+)?)\s*(lakh|lakhs|crore|crores|%|percent|years?)?"
 
