@@ -122,7 +122,11 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
             <Card key={d.id}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center justify-between">
-                  <span>{d.filename}</span>
+                  <a href={`http://127.0.0.1:8000/api/v1/bids/documents/${d.id}/file`}
+                     target="_blank" rel="noreferrer"
+                     className="text-blue-700 hover:underline">
+                    {d.filename} ↗
+                  </a>
                   <span className="flex gap-2">
                     <Badge variant="secondary">{d.doc_type}</Badge>
                     <Badge variant={d.status === "PROCESSED" ? "outline" : "destructive"}>{d.status}</Badge>

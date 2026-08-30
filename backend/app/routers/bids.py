@@ -3,6 +3,7 @@ import shutil
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -68,6 +69,14 @@ def submit_bid(bid_id: int, background: BackgroundTasks, db: Session = Depends(g
     log_event(db, "bidder", "BID_SUBMITTED", f"bid:{bid_id}")
     background.add_task(run_pipeline, bid_id)
     return {"id": bid_id, "pipeline_status": "QUEUED"}
+
+
+@router.get("/documents/{doc_id}/file")
+def document_file(doc_id: int, db: Session = Depends(get_db)):
+    doc = db.get(Document, doc_id)
+    if not doc:
+        raise HTTPException(404, "document not found")
+    return FileResponse(doc.file_path, filename=doc.filename)
 
 
 @router.get("/{bid_id}/status")
