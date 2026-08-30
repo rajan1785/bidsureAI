@@ -126,6 +126,20 @@ def generate():
              ("Valid Until", co["epfo_valid"])],
             "EPFO, Ministry of Labour and Employment",
         )
+        if key in ("A", "B"):
+            # Company profile with declarations for tender-specific clauses
+            # (Apex deliberately lacks this, so custom rules flag it for review)
+            cert(
+                d / "company_profile.pdf",
+                co["name"],
+                "Company Profile & Tender Declarations",
+                [("Average Annual Turnover", "Rs. 6.20 Crores (last three years)"),
+                 ("Work Experience", "8 years similar security services; certificates enclosed"),
+                 ("Earnest Money Deposit", "Demand Draft for Rs. 6,55,000 enclosed"),
+                 ("Wages Compliance", "Rates comply with notified minimum wages"),
+                 ("Local Content", "62% - Make in India, Class-I Local Supplier")],
+                "Declarations made for tender participation",
+            )
         if co["psara"]:
             lic, valid = co["psara"]
             cert(
