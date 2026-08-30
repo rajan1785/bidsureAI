@@ -1,0 +1,84 @@
+{
+  "provisions": [
+    {
+      "id": "GFR-170",
+      "source": "General Financial Rules 2017",
+      "provision": "Rule 170",
+      "title": "Bid Security / Earnest Money Deposit",
+      "summary": "Bid security of 2-5% of estimated value may be sought; must be refunded to unsuccessful bidders. MSEs are exempt.",
+      "keywords": ["earnest money", "emd", "bid security", "deposit", "demand draft"]
+    },
+    {
+      "id": "GFR-173",
+      "source": "General Financial Rules 2017",
+      "provision": "Rule 173",
+      "title": "Bidder Qualification Criteria",
+      "summary": "Eligibility and qualification criteria (experience, past performance, turnover, capacity) must be stated in bid documents and applied uniformly.",
+      "keywords": ["experience", "turnover", "similar work", "qualification", "past performance", "capacity", "certificates"]
+    },
+    {
+      "id": "PPP-MII-2017",
+      "source": "Public Procurement (Preference to Make in India) Order 2017",
+      "provision": "Order P-45021/2/2017",
+      "title": "Minimum Local Content",
+      "summary": "Class-I local suppliers (local content >= 50%) get purchase preference in government procurement.",
+      "keywords": ["local content", "make in india", "class-i", "local supplier"]
+    },
+    {
+      "id": "MSE-2012",
+      "source": "Public Procurement Policy for MSEs Order 2012",
+      "provision": "MSMED Act 2006 / Order 2012",
+      "title": "MSE Procurement Benefits",
+      "summary": "Udyam-registered MSEs get tender-fee/EMD exemption and price preference in government procurement.",
+      "keywords": ["udyam", "msme", "mse", "micro", "small enterprise"]
+    },
+    {
+      "id": "PSARA-2005",
+      "source": "Private Security Agencies (Regulation) Act 2005",
+      "provision": "Section 4",
+      "title": "Licence to run a Private Security Agency",
+      "summary": "No person shall carry on the business of a private security agency without a licence from the state Controlling Authority.",
+      "keywords": ["psara", "security agency", "private security", "licence", "license"]
+    },
+    {
+      "id": "CGST-2017",
+      "source": "Central Goods and Services Tax Act 2017",
+      "provision": "Sections 22-25",
+      "title": "GST Registration",
+      "summary": "Suppliers above threshold turnover must be registered under GST; registration status must be Active.",
+      "keywords": ["gst", "gstin", "goods and services tax"]
+    },
+    {
+      "id": "IT-1961",
+      "source": "Income Tax Act 1961",
+      "provision": "Section 139A",
+      "title": "Permanent Account Number",
+      "summary": "PAN is mandatory for specified persons and transactions; bidder PAN must be valid.",
+      "keywords": ["pan", "permanent account number", "income tax"]
+    },
+    {
+      "id": "EPF-1952",
+      "source": "EPF & Miscellaneous Provisions Act 1952",
+      "provision": "Section 1(3)",
+      "title": "EPF Registration of Establishments",
+      "summary": "Establishments employing 20+ persons must register with EPFO; mandatory for manpower contracts.",
+      "keywords": ["epf", "epfo", "provident fund"]
+    },
+    {
+      "id": "CVC-DEBAR",
+      "source": "CVC Guidelines / GFR 2017 Rule 151",
+      "provision": "Debarment of Bidders",
+      "title": "Blacklisting / Debarment",
+      "summary": "Bidders debarred or blacklisted by any procuring entity are ineligible during the debarment period.",
+      "keywords": ["blacklist", "debarment", "debarred", "banned"]
+    },
+    {
+      "id": "MW-1948",
+      "source": "Minimum Wages Act 1948",
+      "provision": "Section 12",
+      "title": "Payment of Minimum Wages",
+      "summary": "Contractor rates for deployed staff cannot be below government-notified minimum wages for the category.",
+      "keywords": ["minimum wages", "wages", "wage"]
+    }
+  ]
+}
