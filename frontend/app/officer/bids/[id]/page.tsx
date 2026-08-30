@@ -21,6 +21,14 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Keep polling while the verification pipeline is still running
+  const running = bid !== null && !["DONE", "ERROR", "DRAFT"].includes(bid.pipeline_status);
+  useEffect(() => {
+    if (!running) return;
+    const t = setInterval(refresh, 1200);
+    return () => clearInterval(t);
+  }, [running, refresh]);
+
   if (!bid) return <p className="text-slate-500">Loading…</p>;
 
   async function decide(decision: string) {
@@ -47,6 +55,27 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
           </div>
         )}
       </div>
+
+      {bid.pipeline_status === "DRAFT" && (
+        <div className="rounded-lg border border-slate-300 bg-slate-100 p-4 text-sm text-slate-600">
+          This bid has not been submitted yet — no verification has run. Results will
+          appear here after the bidder submits.
+        </div>
+      )}
+      {bid.pipeline_status === "ERROR" && (
+        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+          The verification pipeline hit an error for this bid. Check the audit log for
+          details, or re-submit the bid.
+        </div>
+      )}
+      {running && (
+        <div className="rounded-lg border border-blue-300 bg-blue-50 p-4 text-sm text-blue-800 flex items-center gap-3">
+          <span className="inline-flex h-4 w-4 rounded-full bg-blue-600 animate-pulse" />
+          Verification in progress — current stage:{" "}
+          <span className="font-mono font-semibold">{bid.pipeline_status}</span>. This
+          page updates automatically.
+        </div>
+      )}
 
       <Tabs defaultValue="results">
         <TabsList>
