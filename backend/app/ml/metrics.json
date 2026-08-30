@@ -1,0 +1,89 @@
+{
+  "model": "TF-IDF (1-2 grams) + LogisticRegression",
+  "corpus": "840 synthetic documents, 7 classes",
+  "test_size": 210,
+  "accuracy": 1.0,
+  "labels": [
+    "GST_CERT",
+    "PAN_CARD",
+    "UDYAM_CERT",
+    "EPFO_REG",
+    "PSARA_LICENSE",
+    "COMPANY_PROFILE",
+    "OTHER"
+  ],
+  "confusion_matrix": [
+    [
+      30,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      30,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      30,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      30,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      30,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      30,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      30
+    ]
+  ],
+  "per_class_f1": {
+    "COMPANY_PROFILE": 1.0,
+    "EPFO_REG": 1.0,
+    "GST_CERT": 1.0,
+    "OTHER": 1.0,
+    "PAN_CARD": 1.0,
+    "PSARA_LICENSE": 1.0,
+    "UDYAM_CERT": 1.0
+  }
+}
