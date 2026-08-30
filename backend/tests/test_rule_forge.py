@@ -11,6 +11,7 @@ Average Annual Turnover  Rs. 6.20 Crores (last three years)
 Work Experience  8 years similar security services; certificates enclosed
 Earnest Money Deposit  Demand Draft for Rs. 6,55,000 enclosed
 Wages Compliance  Rates comply with notified minimum wages
+Performance Security  Bank Guarantee of Rs. 17,00,000 will be furnished on award
 """
 
 
@@ -87,3 +88,13 @@ def test_rulebook_grounding():
 def test_drafted_rule_carries_legal_basis():
     d = draft_rule("Earnest Money Deposit (EMD) must be submitted as specified in the tender")
     assert d["legal_basis"]["source"] == "General Financial Rules 2017"
+
+
+def test_performance_security_detector_and_gtc_basis():
+    reqs = extract_custom_clauses(
+        "The successful bidder will submit performance security in the form of "
+        "Bank Guaranty/Demand Draft of Rs.17,00,000/-")
+    assert any("performance security" in r["text"].lower() for r in reqs)
+    d = draft_rule("Successful bidder must furnish performance security as specified (Rs.17,00,000)")
+    assert d["legal_basis"]["provision"] == "Clause 7"
+    assert "GeM GTC" in d["legal_basis"]["source"]
