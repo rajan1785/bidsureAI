@@ -14,6 +14,7 @@ from app.models import (
     Bidder,
     ComplianceResult,
     Document,
+    DynamicRule,
     ExtractedField,
     GovtRecord,
     Recommendation,
@@ -26,6 +27,7 @@ from app.pipeline.crosscheck import crosscheck
 from app.pipeline.extract import extract_fields
 from app.pipeline.ocr import extract_text
 from app.pipeline.recommend import recommend
+from app.pipeline.rule_forge import evaluate_dynamic
 from app.pipeline.rules import evaluate, filter_ruleset, load_ruleset
 from app.pipeline.scoring import score
 from app.pipeline.verify import verify_identifiers
@@ -103,6 +105,32 @@ def run_pipeline(bid_id: int):
         }
         ruleset = filter_ruleset(load_ruleset(ruleset_name), approved_keys)
         results = evaluate(ruleset, checks, list(extracted_by_doc.keys()))
+
+        # AI-drafted (officer-approved) dynamic rules for tender-specific clauses
+        doc_texts = {doc.filename: texts[doc.id] for doc in docs if doc.id in texts}
+        dyn_rules = db.query(DynamicRule).filter_by(tender_id=tender.id, approved=1).all()
+        req_texts = {r.id: r.text for r in db.query(Requirement)
+                     .filter_by(tender_id=tender.id).all()}
+        for dr in dyn_rules:
+            verdict = evaluate_dynamic(
+                {"rule_type": dr.rule_type, "keywords": dr.keywords,
+                 "threshold": dr.threshold, "unit": dr.unit,
+                 "comparator": dr.comparator, "critical": bool(dr.critical)},
+                doc_texts,
+            )
+            results.append({
+                "requirement_key": f"custom_{dr.id}",
+                "requirement_text": req_texts.get(dr.requirement_id, "Tender-specific clause"),
+                "status": verdict["status"],
+                "reason": verdict["reason"],
+                "rule_id": f"R-DYN-{dr.id}",
+                "rule_version": dr.version,
+                "critical": bool(dr.critical),
+                "weight": dr.weight,
+                "evidence": {**verdict["evidence"],
+                             **({"legal_basis": dr.legal_basis} if dr.legal_basis else {})},
+            })
+
         for r in results:
             db.add(ComplianceResult(
                 bid_id=bid.id, requirement_key=r["requirement_key"],
