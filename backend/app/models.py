@@ -60,6 +60,7 @@ class DynamicRule(Base):
     version: Mapped[str] = mapped_column(String, default="dyn-v1")
     approved: Mapped[int] = mapped_column(Integer, default=0)
     legal_basis: Mapped[dict] = mapped_column(JSON, nullable=True)
+    generated_code: Mapped[str] = mapped_column(Text, default="")
 
 
 class Bidder(Base):

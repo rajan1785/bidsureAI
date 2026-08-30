@@ -9,6 +9,7 @@ from app.audit import log_event
 from app.db import UPLOADS_DIR, get_db
 from app.models import DynamicRule, Requirement, Tender
 from app.pipeline.ocr import extract_text
+from app.pipeline.codegen import generate_code
 from app.pipeline.rule_forge import draft_rule
 from app.pipeline.tender_extract import extract_requirements
 
@@ -52,11 +53,14 @@ def create_tender(
         if not r["rule_key"]:
             # no built-in rule covers this clause -> forge drafts one
             d = draft_rule(r["text"])
-            db.add(DynamicRule(tender_id=tender.id, requirement_id=req.id,
-                               rule_type=d["rule_type"], keywords=d["keywords"],
-                               threshold=d["threshold"], unit=d["unit"],
-                               comparator=d["comparator"],
-                               legal_basis=d.get("legal_basis")))
+            dr = DynamicRule(tender_id=tender.id, requirement_id=req.id,
+                             rule_type=d["rule_type"], keywords=d["keywords"],
+                             threshold=d["threshold"], unit=d["unit"],
+                             comparator=d["comparator"],
+                             legal_basis=d.get("legal_basis"))
+            db.add(dr)
+            db.flush()
+            dr.generated_code = generate_code(d, f"R-DYN-{dr.id}", r["text"])
             drafted += 1
     tender.status = "REVIEW"
     db.commit()
@@ -140,7 +144,7 @@ def _tender_dict(t: Tender, db: Session):
         return {"id": d.id, "rule_type": d.rule_type, "keywords": d.keywords,
                 "threshold": d.threshold, "unit": d.unit, "comparator": d.comparator,
                 "version": d.version, "approved": bool(d.approved),
-                "legal_basis": d.legal_basis}
+                "legal_basis": d.legal_basis, "generated_code": d.generated_code}
     return {
         "id": t.id, "title": t.title, "organization": t.organization, "ref_no": t.ref_no,
         "status": t.status, "ruleset_version": t.ruleset_version, "created_at": t.created_at,
