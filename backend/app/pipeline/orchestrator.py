@@ -27,6 +27,7 @@ from app.pipeline.crosscheck import crosscheck
 from app.pipeline.extract import extract_fields
 from app.pipeline.ocr import extract_text
 from app.pipeline.recommend import recommend
+from app.pipeline.codegen import run_generated
 from app.pipeline.rule_forge import evaluate_dynamic
 from app.pipeline.rules import evaluate, filter_ruleset, load_ruleset
 from app.pipeline.scoring import score
@@ -112,12 +113,19 @@ def run_pipeline(bid_id: int):
         req_texts = {r.id: r.text for r in db.query(Requirement)
                      .filter_by(tender_id=tender.id).all()}
         for dr in dyn_rules:
-            verdict = evaluate_dynamic(
-                {"rule_type": dr.rule_type, "keywords": dr.keywords,
-                 "threshold": dr.threshold, "unit": dr.unit,
-                 "comparator": dr.comparator, "critical": bool(dr.critical)},
-                doc_texts,
-            )
+            rule_dict = {"rule_type": dr.rule_type, "keywords": dr.keywords,
+                         "threshold": dr.threshold, "unit": dr.unit,
+                         "comparator": dr.comparator, "critical": bool(dr.critical)}
+            try:
+                # primary path: the rule's own generated code, sandboxed
+                verdict = run_generated(dr.generated_code, doc_texts)
+                log_event(db, "system", "GENERATED_CODE_EXECUTED",
+                          f"bid:{bid.id}", f"R-DYN-{dr.id} via generated check()")
+            except Exception as exc:
+                # safety net: deterministic built-in executor
+                verdict = evaluate_dynamic(rule_dict, doc_texts)
+                log_event(db, "system", "CODE_EXEC_FALLBACK",
+                          f"bid:{bid.id}", f"R-DYN-{dr.id}: {exc}")
             results.append({
                 "requirement_key": f"custom_{dr.id}",
                 "requirement_text": req_texts.get(dr.requirement_id, "Tender-specific clause"),
