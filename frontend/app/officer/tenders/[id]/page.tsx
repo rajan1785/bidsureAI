@@ -14,6 +14,7 @@ export default function TenderReview({ params }: { params: Promise<{ id: string 
   const router = useRouter();
   const [tender, setTender] = useState<Tender | null>(null);
   const [editing, setEditing] = useState<number | null>(null);
+  const [codeOpen, setCodeOpen] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -111,7 +112,20 @@ export default function TenderReview({ params }: { params: Promise<{ id: string 
                     § {r.dynamic_rule.legal_basis.source}, {r.dynamic_rule.legal_basis.provision}
                   </span>
                 )}
+                {r.dynamic_rule?.generated_code && (
+                  <button
+                    onClick={() => setCodeOpen(codeOpen === r.id ? null : r.id)}
+                    className="px-2 py-0.5 rounded bg-slate-800 text-slate-100 font-mono hover:bg-slate-700"
+                  >
+                    {codeOpen === r.id ? "hide generated code" : "</> view generated code"}
+                  </button>
+                )}
               </div>
+              {r.dynamic_rule?.generated_code && codeOpen === r.id && (
+                <pre className="text-xs bg-slate-900 text-emerald-300 rounded-md p-3 overflow-x-auto leading-relaxed">
+                  {r.dynamic_rule.generated_code}
+                </pre>
+              )}
             </div>
           ))}
         </CardContent>

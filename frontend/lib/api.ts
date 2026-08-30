@@ -18,6 +18,7 @@ export type DynamicRule = {
   version: string;
   approved: boolean;
   legal_basis: LegalBasis | null;
+  generated_code: string;
 };
 
 export type Requirement = {
