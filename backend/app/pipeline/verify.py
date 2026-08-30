@@ -11,11 +11,11 @@ GOVT_API = os.environ.get("GOVT_API_URL", "http://127.0.0.1:9000")
 
 # source name -> (endpoint, which registered identifier to use)
 SOURCES = [
-    ("GST", "/gst/{}", "gstin"),
-    ("PAN", "/pan/{}", "pan"),
-    ("UDYAM", "/udyam/{}", "udyam"),
-    ("EPFO", "/epfo/{}", "epfo_code"),
-    ("BLACKLIST", "/blacklist/{}", "pan"),
+    ("GST", "/api/v1/gstn/verify/{}", "gstin"),
+    ("PAN", "/api/v1/pan/verify/{}", "pan"),
+    ("UDYAM", "/api/v1/udyam/verify/{}", "udyam"),
+    ("EPFO", "/api/v1/epfo/establishment/{}", "epfo_code"),
+    ("BLACKLIST", "/api/v1/debarment/check/{}", "pan"),
 ]
 
 
