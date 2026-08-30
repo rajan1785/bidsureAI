@@ -46,7 +46,42 @@ def extract_requirements(tender_text: str) -> list[dict]:
     for keywords, text, rtype, rule_key in KEYWORD_REQUIREMENTS:
         if any(k in low for k in keywords):
             reqs.append({"text": text, "type": rtype, "priority": "MANDATORY", "rule_key": rule_key})
+    reqs.extend(extract_custom_clauses(tender_text))
     if not reqs:  # safety net: statutory basics always apply
         for _, text, rtype, rule_key in KEYWORD_REQUIREMENTS[:2]:
             reqs.append({"text": text, "type": rtype, "priority": "MANDATORY", "rule_key": rule_key})
     return reqs
+
+
+# Custom (tender-specific) clause detectors: requirements with rule_key "" get an
+# AI-drafted dynamic rule instead of a built-in one.
+import re  # noqa: E402
+
+CUSTOM_CLAUSE_PATTERNS = [
+    (r"earnest money|EMD",
+     "Earnest Money Deposit (EMD) must be submitted as specified in the tender{detail}"),
+    (r"work experience certificate|experience certificate|similar work",
+     "Bidder must submit work experience certificates for similar services"),
+    (r"\bturnover\b",
+     "Bidder must demonstrate the required average annual turnover{detail}"),
+    (r"minimum wages?",
+     "Quoted rates must not be below the government-notified minimum wages"),
+]
+
+
+def extract_custom_clauses(tender_text: str) -> list[dict]:
+    reqs = []
+    for pattern, template in CUSTOM_CLAUSE_PATTERNS:
+        m = re.search(pattern, tender_text, re.I)
+        if not m:
+            continue
+        window = tender_text[max(0, m.start() - 80): m.end() + 160]
+        amount = re.search(r"(?<![A-Za-z])Rs\.?\s*[\d,]{2,}(?:\.\d+)?\s*(?:lakhs?|crores?)?", window, re.I)
+        detail = f" ({amount.group(0).strip()})" if amount and "{detail}" in template else ""
+        reqs.append({
+            "text": template.replace("{detail}", detail),
+            "type": "TENDER_SPECIFIC",
+            "priority": "MANDATORY",
+            "rule_key": "",  # no built-in rule -> the rule forge drafts one
+        })
+    return reqs[:4]
