@@ -16,12 +16,22 @@ CACHE_DIR.mkdir(exist_ok=True)
 
 GEMINI_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-2.0-flash:generateContent"
+    "gemini-3.6-flash:generateContent"
 )
 
 
-def llm_json(prompt: str, cache_key: str):
+def feature_enabled(feature: str) -> bool:
+    """GEMINI_FEATURES controls which pipeline steps may call the LLM.
+    Default 'recommend': prose only — extraction and rule drafting stay
+    deterministic so verification results are stable run-to-run."""
+    enabled = os.environ.get("GEMINI_FEATURES", "recommend")
+    return feature in [f.strip() for f in enabled.split(",")] or enabled == "all"
+
+
+def llm_json(prompt: str, cache_key: str, feature: str = "recommend"):
     """Returns parsed JSON from the LLM, cached copy, or None."""
+    if not feature_enabled(feature):
+        return None  # feature off: no API call AND no LLM cache reuse
     cache_file = CACHE_DIR / f"{cache_key}.json"
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if api_key:

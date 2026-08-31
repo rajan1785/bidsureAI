@@ -72,7 +72,7 @@ def recommend(bidder_name: str, results: list[dict], assessment: dict,
         )
         if evidence_lines:
             text += "\n\n" + "\n".join(evidence_lines)
-        return {"text": text.strip(), "model": "gemini-2.0-flash + minilm-rag", "grounded_refs": refs}
+        return {"text": text.strip(), "model": "gemini-3.6-flash + minilm-rag", "grounded_refs": refs}
 
     # Deterministic writer
     problems = [r for r in results if r["status"] in ("Non-Compliant", "Review Required")]

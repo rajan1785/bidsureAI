@@ -34,7 +34,9 @@ def _clean(text: str) -> str:
 
 def extract_requirements(tender_text: str) -> list[dict]:
     tender_text = _clean(tender_text)
-    out = llm_json(PROMPT.format(tender_text=tender_text[:14000]), "tender_requirements")
+    out = llm_json(PROMPT.format(tender_text=tender_text[:14000]),
+                   f"tender_requirements_{abs(hash(tender_text[:2000])) % 10**10}",
+                   feature="extract")
     if isinstance(out, list) and out:
         cleaned = []
         for item in out:
@@ -46,6 +48,17 @@ def extract_requirements(tender_text: str) -> list[dict]:
                     "rule_key": item.get("rule_key", "") or "",
                 })
         if cleaned:
+            have_keys = {r["rule_key"] for r in cleaned if r["rule_key"]}
+            low = tender_text.lower()
+            for keywords, text, rtype, rule_key in KEYWORD_REQUIREMENTS:
+                if rule_key not in have_keys and any(k in low for k in keywords):
+                    cleaned.append({"text": text, "type": rtype,
+                                    "priority": "MANDATORY", "rule_key": rule_key})
+            joined = " ".join(r["text"].lower() for r in cleaned)
+            for c in extract_custom_clauses(tender_text):
+                probe = c["text"].lower()[:25]
+                if probe not in joined:
+                    cleaned.append(c)
             return cleaned
 
     # Deterministic fallback

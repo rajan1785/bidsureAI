@@ -105,7 +105,7 @@ def draft_rule(clause: str) -> dict:
     """Returns {rule_type, keywords, threshold, unit, comparator, legal_basis}."""
     legal_basis = match_rulebook(clause)
     out = llm_json(DRAFT_PROMPT.format(clause=clause[:400]),
-                   f"rule_draft_{abs(hash(clause)) % 10**10}")
+                   f"rule_draft_{abs(hash(clause)) % 10**10}", feature="draft")
     if isinstance(out, dict) and out.get("rule_type") in RULE_TYPES and out.get("keywords"):
         return {
             "rule_type": out["rule_type"],
