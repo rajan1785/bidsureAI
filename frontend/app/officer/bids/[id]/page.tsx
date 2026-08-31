@@ -16,6 +16,7 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
   const [remarks, setRemarks] = useState("");
   const [saved, setSaved] = useState("");
   const [viewer, setViewer] = useState<{ id: number; filename: string } | null>(null);
+  const [changing, setChanging] = useState(false);
 
   const refresh = useCallback(async () => {
     setBid(await api.bidDetail(bidId));
@@ -36,6 +37,7 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
   async function decide(decision: string) {
     await api.recordDecision(bidId, decision, remarks);
     setSaved(decision);
+    setChanging(false);
     refresh();
   }
 
@@ -190,12 +192,20 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
             </Card>
           )}
 
-          {bid.decision ? (
+          {bid.decision && !changing ? (
             <Card className="border-emerald-300">
               <CardContent className="pt-6">
-                <p className="font-semibold">Officer decision: {bid.decision.decision}</p>
-                {bid.decision.remarks && <p className="text-sm text-slate-600 mt-1">{bid.decision.remarks}</p>}
-                <p className="text-xs text-slate-400 mt-2">{bid.decision.officer} · {bid.decision.timestamp}</p>
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <p className="font-semibold">Officer decision: {bid.decision.decision}</p>
+                    {bid.decision.remarks && <p className="text-sm text-slate-600 mt-1">{bid.decision.remarks}</p>}
+                    <p className="text-xs text-slate-400 mt-2">{bid.decision.officer} · {bid.decision.timestamp}</p>
+                  </div>
+                  <Button variant="outline" size="sm"
+                    onClick={() => { setChanging(true); setRemarks(bid.decision?.remarks ?? ""); }}>
+                    Change decision
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : (
