@@ -98,3 +98,20 @@ def test_performance_security_detector_and_gtc_basis():
     d = draft_rule("Successful bidder must furnish performance security as specified (Rs.17,00,000)")
     assert d["legal_basis"]["provision"] == "Clause 7"
     assert "GeM GTC" in d["legal_basis"]["source"]
+
+
+def test_semantic_miner_finds_unpatterned_obligations():
+    from app.pipeline.tender_extract import extract_requirements
+    text = """Bid Number: GEM/2026/B/1234567
+    The bidder has to upload bid documents duly stamped and signed including annexures.
+    The Bidder shall submit the OEM Authorization Certificate along with compliance data sheet.
+    Delivery within 30 days at consignee location."""
+    reqs = extract_requirements(text)
+    joined = " ".join(r["text"].lower() for r in reqs)
+    assert "stamped and signed" in joined or "oem authorization" in joined
+
+
+def test_cid_and_hindi_cleanup():
+    from app.pipeline.tender_extract import _clean
+    out = _clean("(cid:1)(cid:68)bid ठेका Bidder must possess GST registration")
+    assert "(cid:" not in out and "GST" in out

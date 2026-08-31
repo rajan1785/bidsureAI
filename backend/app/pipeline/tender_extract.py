@@ -25,7 +25,15 @@ Use rule_key "" for requirements outside that list. Tender text (truncated):
 """
 
 
+def _clean(text: str) -> str:
+    """Strip pdf cid artifacts and non-ascii (bilingual GeM bids) so keyword
+    and semantic detection see plain English."""
+    text = re.sub(r"\(cid:\d+\)", "", text)
+    return re.sub(r"[^\x00-\x7F]+", " ", text)
+
+
 def extract_requirements(tender_text: str) -> list[dict]:
+    tender_text = _clean(tender_text)
     out = llm_json(PROMPT.format(tender_text=tender_text[:14000]), "tender_requirements")
     if isinstance(out, list) and out:
         cleaned = []
@@ -47,6 +55,7 @@ def extract_requirements(tender_text: str) -> list[dict]:
         if any(k in low for k in keywords):
             reqs.append({"text": text, "type": rtype, "priority": "MANDATORY", "rule_key": rule_key})
     reqs.extend(extract_custom_clauses(tender_text))
+    reqs.extend(mine_requirements(tender_text, [r["text"] for r in reqs]))
     if not reqs:  # safety net: statutory basics always apply
         for _, text, rtype, rule_key in KEYWORD_REQUIREMENTS[:2]:
             reqs.append({"text": text, "type": rtype, "priority": "MANDATORY", "rule_key": rule_key})
@@ -60,8 +69,10 @@ import re  # noqa: E402
 CUSTOM_CLAUSE_PATTERNS = [
     (r"earnest money|EMD",
      "Earnest Money Deposit (EMD) must be submitted as specified in the tender{detail}"),
-    (r"work experience certificate|experience certificate|similar work",
-     "Bidder must submit work experience certificates for similar services"),
+    (r"work experience certificate|experience certificate|similar work|experience criteria|years of past experience",
+     "Bidder must meet the experience criteria and submit supporting experience documents"),
+    (r"OEM authori[sz]ation",
+     "Bidder must submit a valid OEM Authorization Certificate"),
     (r"\bturnover\b",
      "Bidder must demonstrate the required average annual turnover{detail}"),
     (r"minimum wages?",
@@ -73,6 +84,51 @@ CUSTOM_CLAUSE_PATTERNS = [
     (r"land border|rule 144\s*\(xi\)",
      "Bidder from a land-border country must be registered with the competent authority (GFR Rule 144(xi))"),
 ]
+
+
+OBLIGATION = re.compile(
+    r"\b(bidder|seller|tenderer|agency|OEM)s?\b.{0,60}\b(must|shall|should|required to|has to)\b",
+    re.I,
+)
+
+_PROTOTYPE = ("the bidder must submit a document, certificate or declaration "
+              "to prove eligibility for the tender")
+
+
+def mine_requirements(tender_text: str, existing_texts: list[str], limit: int = 4) -> list[dict]:
+    """Semantic requirement mining: rank obligation sentences with the local
+    embedding model so clauses outside the known patterns still surface."""
+    lines, seen = [], set()
+    for l in tender_text.splitlines():
+        l = " ".join(l.split())
+        if 50 < len(l) < 220 and OBLIGATION.search(l):
+            k = l[:60].lower()
+            if k not in seen:
+                seen.add(k)
+                lines.append(l)
+    if not lines:
+        return []
+    try:
+        from app.ml.embedder import top_k
+    except Exception:
+        return []
+    picked = []
+    corpus = lines[:60]
+    ranked = top_k(_PROTOTYPE, corpus, k=min(len(corpus), limit * 3))
+    exist = [e.lower() for e in existing_texts]
+    for i, score in ranked:
+        if score < 0.35 or len(picked) >= limit:
+            break
+        line = corpus[i]
+        # skip clauses we already captured via patterns
+        if any(w in line.lower() for e in exist for w in [e[:40]] if w in line.lower()):
+            continue
+        dup = top_k(line, existing_texts + [p["text"] for p in picked], k=1) if (existing_texts or picked) else []
+        if dup and dup[0][1] > 0.8:
+            continue
+        picked.append({"text": line[:300], "type": "TENDER_SPECIFIC",
+                       "priority": "MANDATORY", "rule_key": ""})
+    return picked
 
 
 def extract_custom_clauses(tender_text: str) -> list[dict]:
@@ -90,4 +146,4 @@ def extract_custom_clauses(tender_text: str) -> list[dict]:
             "priority": "MANDATORY",
             "rule_key": "",  # no built-in rule -> the rule forge drafts one
         })
-    return reqs[:6]
+    return reqs[:8]
