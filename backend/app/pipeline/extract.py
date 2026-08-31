@@ -38,7 +38,7 @@ RELEVANT = {
 
 # OCR confusion pairs; PAN/GSTIN have fixed letter/digit positions, so we can
 # repair misreads positionally (e.g. "AAECSI234F" -> "AAECS1234F").
-_TO_DIGIT = {"O": "0", "I": "1", "L": "1", "S": "5", "B": "8", "Z": "2", "G": "6", "Q": "0", "D": "0"}
+_TO_DIGIT = {"O": "0", "I": "1", "L": "1", "S": "5", "B": "8", "Z": "2", "G": "6", "Q": "0", "D": "0", "/": "1", "\\": "1", "|": "1"}
 _TO_LETTER = {v: k for k, v in {"O": "0", "I": "1", "S": "5", "B": "8", "Z": "2", "G": "6"}.items()}
 
 
@@ -63,7 +63,7 @@ def _fix_positions(token: str, spec: str) -> str | None:
             else:
                 return None
         elif want == "*":
-            out.append(ch)
+            out.append("1" if ch in ("/", "\\", "|") else ch)
         else:  # literal
             if ch == want:
                 out.append(ch)
@@ -76,11 +76,13 @@ def _fix_positions(token: str, spec: str) -> str | None:
 
 _PAN_SPEC = "LLLLLDDDDL"
 _GSTIN_SPEC = "DDLLLLLDDDDL*Z*"
+_UDYAM_SPEC = "LLDDDDDDDDD"
 
 
 _LABELS = [
-    ("gstin", r"GSTIN[^A-Z0-9]{0,6}", 15, "_GSTIN_SPEC"),
+    ("gstin", r"(?:GSTIN|Registration\s+Number)[^A-Z0-9]{0,8}", 15, "_GSTIN_SPEC"),
     ("pan", r"(?:PAN|Permanent\s+Account\s+Number)[^A-Z0-9]{0,10}", 10, "_PAN_SPEC"),
+    ("udyam", r"UDYAM(?:\s+Registration)?(?:\s+(?:Number|No\.?))?[^A-Z0-9]{0,8}", 11, "_UDYAM_SPEC"),
 ]
 
 
@@ -88,14 +90,21 @@ def _label_anchored(text: str) -> list[dict]:
     """Reassemble identifiers that OCR split into fragments after their label
     (e.g. 'GSTIN): O7AAECS 1234F 1Z5' -> strip separators, repair positionally)."""
     out = []
-    specs = {"_PAN_SPEC": _PAN_SPEC, "_GSTIN_SPEC": _GSTIN_SPEC}
+    specs = {"_PAN_SPEC": _PAN_SPEC, "_GSTIN_SPEC": _GSTIN_SPEC, "_UDYAM_SPEC": _UDYAM_SPEC}
     for field, label_pat, length, spec_name in _LABELS:
         for m in re.finditer(label_pat, text, re.IGNORECASE):
             window = text[m.end(): m.end() + length * 2 + 10]
-            compact = re.sub(r"[^A-Z0-9]", "", window.upper())[:length]
+            # translate slash/pipe misreads to '1' BEFORE stripping separators,
+            # or the character (and the position alignment) is lost entirely
+            cleaned = re.sub(r"[/|\\]", "1", window.upper())
+            compact = re.sub(r"[^A-Z0-9]", "", cleaned)[:length]
             if len(compact) < length:
                 continue
+            if field == "udyam" and compact.startswith("UDYAM"):
+                compact = re.sub(r"[^A-Z0-9]", "", cleaned.replace("UDYAM", "", 1))[:length]
             repaired = _fix_positions(compact, specs[spec_name])
+            if field == "udyam" and repaired:
+                repaired = f"UDYAM-{repaired[:2]}-{repaired[2:4]}-{repaired[4:]}"
             if repaired and PATTERNS[field].fullmatch(repaired):
                 out.append({"field": field, "value": repaired, "confidence": 0.75,
                             "evidence_location": f"chars {m.start()}-{m.end()+length} (OCR-reassembled near '{field.upper()}' label)"})

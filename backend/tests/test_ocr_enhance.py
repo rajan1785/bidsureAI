@@ -83,3 +83,15 @@ def test_scanned_pdf_rasterize_path():
     pdf = Path(__file__).parents[2] / "demo-assets" / "bidders" / "A" / "gst_registration_certificate.pdf"
     pages = rasterize_pdf(str(pdf))
     assert pages and pages[0].endswith(".png")
+
+
+def test_registration_number_label_reassembles_gstin():
+    fixes = {f["field"]: f["value"] for f in ocr_correct_identifiers(
+        "Registration Number : 27ANEPK2013/1ZA ee Trade Name")}
+    assert fixes.get("gstin") == "27ANEPK2013I1ZA"
+
+
+def test_udyam_label_reassembly():
+    fixes = {f["field"]: f["value"] for f in ocr_correct_identifiers(
+        "UDYAM Registration Number UDYAM-DL-01 0012345 x")}
+    assert fixes.get("udyam") == "UDYAM-DL-01-0012345"
