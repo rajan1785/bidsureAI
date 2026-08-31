@@ -49,17 +49,17 @@ export default function NewTender() {
         <CardContent>
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="title">Tender Title</Label>
-              <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required
+              <Label htmlFor="title">Tender Title <span className="text-slate-400 font-normal">(optional — auto-detected from the document)</span></Label>
+              <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)}
                 placeholder="Security Services Tender — University of Delhi" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="org">Organization</Label>
+              <Label htmlFor="org">Organization <span className="text-slate-400 font-normal">(optional — auto-detected)</span></Label>
               <Input id="org" value={organization} onChange={(e) => setOrganization(e.target.value)}
                 placeholder="University of Delhi" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ref">Reference No.</Label>
+              <Label htmlFor="ref">Reference No. <span className="text-slate-400 font-normal">(optional — auto-detected)</span></Label>
               <Input id="ref" value={refNo} onChange={(e) => setRefNo(e.target.value)}
                 placeholder="GB-SDC/074/Security Services/2024-25" />
             </div>

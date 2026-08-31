@@ -85,6 +85,11 @@ export const api = {
   deleteRequirement: (tenderId: number, reqId: number) =>
     req(`/tenders/${tenderId}/requirements/${reqId}`, { method: "DELETE" }),
   approveTender: (id: number): Promise<Tender> => req(`/tenders/${id}/approve`, { method: "POST" }),
+  addRequirement: (tenderId: number, text: string): Promise<Tender> =>
+    req(`/tenders/${tenderId}/requirements`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }),
+    }),
+  tenderFileUrl: (tenderId: number) => `${API}/tenders/${tenderId}/file`,
 
   createBidder: (body: Record<string, string>) =>
     req("/bidders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
