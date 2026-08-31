@@ -12,7 +12,7 @@ import re
 SAFE_GLOBALS = {"re": re, "float": float, "len": len, "max": max, "min": min,
                 "abs": abs, "str": str, "round": round, "__builtins__": {}}
 
-_HELPERS = '''\
+_NUM_HELPER = '''\
 def _parse_number(raw, unit):
     n = float(raw.replace(",", ""))
     unit = (unit or "").lower()
@@ -21,8 +21,9 @@ def _parse_number(raw, unit):
     elif unit.startswith("crore"):
         n = n * 10000000
     return n
+'''
 
-
+_HELPERS = '''\
 def _find_hits(doc_texts, keywords):
     # a document qualifies only with enough distinct keyword matches (2-of-N)
     need = min(2, len(keywords))
@@ -53,6 +54,8 @@ def generate_code(rule: dict, rule_label: str, clause: str) -> str:
     if rule["rule_type"] == "THRESHOLD" and rule.get("threshold") is not None:
         body = f'''THRESHOLD = {float(rule["threshold"])!r}
 UNIT = {rule.get("unit", "")!r}
+
+{_NUM_HELPER}
 
 {_HELPERS}
 
