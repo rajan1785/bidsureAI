@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -11,14 +12,14 @@ from app.models import DynamicRule, Requirement, Tender
 from app.pipeline.ocr import extract_text
 from app.pipeline.codegen import generate_code
 from app.pipeline.rule_forge import draft_rule
-from app.pipeline.tender_extract import extract_requirements
+from app.pipeline.tender_extract import extract_requirements, extract_tender_meta, KEYWORD_REQUIREMENTS
 
 router = APIRouter(prefix="/tenders", tags=["tenders"])
 
 
 @router.post("")
 def create_tender(
-    title: str = Form(...),
+    title: str = Form(""),
     organization: str = Form(""),
     ref_no: str = Form(""),
     file: UploadFile = File(...),
@@ -43,6 +44,10 @@ def create_tender(
             "Could not read any text from this document. Upload a PDF, DOCX or TXT "
             "tender with a text layer (scanned images need Tesseract installed).",
         )
+    meta = extract_tender_meta(ocr["text"])
+    tender.title = title.strip() or meta["title"]
+    tender.organization = organization.strip() or meta["organization"]
+    tender.ref_no = ref_no.strip() or meta["ref_no"]
     reqs = extract_requirements(ocr["text"])
     drafted = 0
     for r in reqs:
@@ -67,7 +72,7 @@ def create_tender(
     if drafted:
         log_event(db, "system", "DYNAMIC_RULES_DRAFTED", f"tender:{tender.id}",
                   f"{drafted} rule(s) drafted for tender-specific clauses")
-    log_event(db, "officer", "TENDER_CREATED", f"tender:{tender.id}", title)
+    log_event(db, "officer", "TENDER_CREATED", f"tender:{tender.id}", tender.title)
     log_event(db, "system", "REQUIREMENTS_EXTRACTED", f"tender:{tender.id}",
               f"{len(reqs)} candidate requirements (ocr={ocr['method']})")
     return get_tender(tender.id, db)
@@ -83,6 +88,54 @@ def get_tender(tender_id: int, db: Session = Depends(get_db)):
     t = db.get(Tender, tender_id)
     if not t:
         raise HTTPException(404, "tender not found")
+    return _tender_dict(t, db)
+
+
+@router.get("/{tender_id}/file")
+def tender_file(tender_id: int, db: Session = Depends(get_db)):
+    t = db.get(Tender, tender_id)
+    if not t or not t.file_path:
+        raise HTTPException(404, "tender document not found")
+    return FileResponse(t.file_path, filename=t.file_path.split("/")[-1],
+                        content_disposition_type="inline")
+
+
+class ReqAdd(BaseModel):
+    text: str
+    type: str = "TENDER_SPECIFIC"
+    priority: str = "MANDATORY"
+
+
+@router.post("/{tender_id}/requirements")
+def add_requirement(tender_id: int, body: ReqAdd, db: Session = Depends(get_db)):
+    t = db.get(Tender, tender_id)
+    if not t:
+        raise HTTPException(404, "tender not found")
+    text = body.text.strip()
+    if len(text) < 10:
+        raise HTTPException(422, "requirement text too short")
+    # link to a built-in rule when the text clearly matches one
+    low = text.lower()
+    rule_key = next((rk for kws, _, _, rk in KEYWORD_REQUIREMENTS
+                     if any(k in low for k in kws)), "")
+    already_approved = 1 if t.status == "APPROVED" else 0
+    req = Requirement(tender_id=tender_id, text=text, type=body.type,
+                      priority=body.priority, rule_key=rule_key,
+                      approved=already_approved)
+    db.add(req)
+    db.flush()
+    if not rule_key:
+        d = draft_rule(text)
+        dr = DynamicRule(tender_id=tender_id, requirement_id=req.id,
+                         rule_type=d["rule_type"], keywords=d["keywords"],
+                         threshold=d["threshold"], unit=d["unit"],
+                         comparator=d["comparator"], legal_basis=d.get("legal_basis"),
+                         approved=already_approved)
+        db.add(dr)
+        db.flush()
+        dr.generated_code = generate_code(d, f"R-DYN-{dr.id}", text)
+    db.commit()
+    log_event(db, "officer", "REQUIREMENT_ADDED", f"requirement:{req.id}", text[:80])
     return _tender_dict(t, db)
 
 
