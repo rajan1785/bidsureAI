@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useCallback, useEffect, useState } from "react";
-import { api, BidDetail, riskColor, statusColor } from "@/lib/api";
+import { API, api, BidDetail, riskColor, statusColor } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -228,7 +228,7 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
           <DialogHeader className="pb-2">
             <DialogTitle className="text-sm font-mono flex items-center gap-3">
               {viewer?.filename}
-              <a href={`http://127.0.0.1:8000/api/v1/bids/documents/${viewer?.id}/file`}
+              <a href={`${API}/bids/documents/${viewer?.id}/file`}
                  target="_blank" rel="noreferrer"
                  className="text-xs text-blue-700 hover:underline font-sans">
                 open in new tab ↗
@@ -237,7 +237,7 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
           </DialogHeader>
           {viewer && (
             <iframe
-              src={`http://127.0.0.1:8000/api/v1/bids/documents/${viewer.id}/file`}
+              src={`${API}/bids/documents/${viewer.id}/file`}
               className="flex-1 w-full rounded-md border bg-white"
               title={viewer.filename}
             />
