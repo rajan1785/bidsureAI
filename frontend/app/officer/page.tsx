@@ -38,7 +38,7 @@ export default function OfficerDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold">Officer Dashboard</h1>
         <Link href="/officer/tenders/new">
           <Button>+ New Tender</Button>
@@ -99,13 +99,13 @@ export default function OfficerDashboard() {
               <TableBody>
                 {rows.map((r) => (
                   <TableRow key={r.bid_id}>
-                    <TableCell className="font-medium">{r.bidder}</TableCell>
+                    <TableCell className="font-medium whitespace-nowrap">{r.bidder}</TableCell>
                     <TableCell>
                       <Badge variant={r.pipeline_status === "DONE" ? "outline" : "secondary"}>
                         {r.pipeline_status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-semibold">
+                    <TableCell className="font-semibold whitespace-nowrap">
                       {r.score !== null ? `${r.score}/100` : "—"}
                     </TableCell>
                     <TableCell>

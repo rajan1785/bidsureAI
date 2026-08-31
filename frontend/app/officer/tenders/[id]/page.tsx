@@ -89,7 +89,7 @@ export default function TenderReview({ params }: { params: Promise<{ id: string 
                   </Button>
                 </div>
               </div>
-              <div className="flex gap-2 text-xs">
+              <div className="flex gap-2 text-xs flex-wrap">
                 <span className={`px-2 py-0.5 rounded font-medium ${typeBadge[r.type] ?? "bg-slate-100"}`}>
                   {r.type}
                 </span>

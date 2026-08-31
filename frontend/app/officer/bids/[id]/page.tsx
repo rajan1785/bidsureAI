@@ -43,8 +43,8 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{bid.bidder.legal_name}</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold">{bid.bidder.legal_name}</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 break-words">
             PAN {bid.bidder.pan} · GSTIN {bid.bidder.gstin} · {bid.bidder.udyam}
           </p>
         </div>
@@ -80,7 +80,7 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
       )}
 
       <Tabs defaultValue="results">
-        <TabsList>
+        <TabsList className="max-w-full overflow-x-auto justify-start">
           <TabsTrigger value="results">Compliance Results</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="govt">Government Records</TabsTrigger>

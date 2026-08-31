@@ -26,7 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 font-sans">
         <header className="border-b bg-white sticky top-0 z-10">
-          <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
+          <div className="mx-auto max-w-6xl px-4 min-h-14 py-2 flex items-center justify-between flex-wrap gap-x-4 gap-y-1">
             <Link href="/" className="flex items-center gap-2">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-blue-700 text-white font-bold">
                 B
@@ -35,7 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 Bid<span className="text-blue-700">Sure AI</span>
               </span>
             </Link>
-            <nav className="flex items-center gap-5 text-sm font-medium text-slate-600">
+            <nav className="flex items-center gap-3 sm:gap-5 text-xs sm:text-sm font-medium text-slate-600 flex-wrap">
               <Link href="/officer" className="hover:text-blue-700">Officer Dashboard</Link>
               <Link href="/bidder" className="hover:text-blue-700">Bidder Portal</Link>
               <Link href="/officer/audit" className="hover:text-blue-700">Audit Log</Link>

@@ -47,8 +47,8 @@ export default function AuditLog() {
                   {e.timestamp.replace("T", " ").slice(0, 19)}
                 </TableCell>
                 <TableCell><Badge variant={actorVariant[e.actor] ?? "secondary"}>{e.actor}</Badge></TableCell>
-                <TableCell className="font-mono text-xs">{e.action}</TableCell>
-                <TableCell className="font-mono text-xs">{e.entity}</TableCell>
+                <TableCell className="font-mono text-xs whitespace-nowrap">{e.action}</TableCell>
+                <TableCell className="font-mono text-xs whitespace-nowrap">{e.entity}</TableCell>
                 <TableCell className="text-xs text-slate-600 max-w-md truncate">{e.details}</TableCell>
               </TableRow>
             ))}
