@@ -17,6 +17,8 @@ export default function TenderReview({ params }: { params: Promise<{ id: string 
   const [codeOpen, setCodeOpen] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [newReq, setNewReq] = useState("");
+  const [adding, setAdding] = useState(false);
 
   const refresh = useCallback(async () => {
     setTender(await api.getTender(tenderId));
@@ -37,6 +39,18 @@ export default function TenderReview({ params }: { params: Promise<{ id: string 
     refresh();
   }
 
+  async function addReq() {
+    if (newReq.trim().length < 10) return;
+    setAdding(true);
+    try {
+      await api.addRequirement(tenderId, newReq.trim());
+      setNewReq("");
+      await refresh();
+    } finally {
+      setAdding(false);
+    }
+  }
+
   async function approve() {
     setBusy(true);
     await api.approveTender(tenderId);
@@ -53,8 +67,12 @@ export default function TenderReview({ params }: { params: Promise<{ id: string 
     <div className="space-y-6 max-w-3xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold">{tender.title}</h1>
-        <p className="text-slate-500 text-sm mt-1">
+        <p className="text-slate-500 text-sm mt-1 flex items-center gap-2 flex-wrap">
           {tender.organization} · <Badge variant="secondary">{tender.status}</Badge>
+          <a href={api.tenderFileUrl(tenderId)} target="_blank" rel="noreferrer"
+             className="text-blue-700 hover:underline">
+            view tender document ↗
+          </a>
         </p>
       </div>
 
@@ -128,6 +146,19 @@ export default function TenderReview({ params }: { params: Promise<{ id: string 
               )}
             </div>
           ))}
+          <div className="rounded-lg border border-dashed p-3 space-y-2">
+            <p className="text-xs font-medium text-slate-500">
+              Add your own requirement — a rule (and its verification code) is drafted automatically
+            </p>
+            <div className="flex gap-2">
+              <Textarea rows={1} value={newReq} onChange={(e) => setNewReq(e.target.value)}
+                placeholder="e.g. Bidder must submit ISO 9001 certification"
+                className="min-h-9" />
+              <Button onClick={addReq} disabled={adding || newReq.trim().length < 10}>
+                {adding ? "Drafting…" : "+ Add"}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
