@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -5,9 +7,10 @@ from app.db import init_db
 
 app = FastAPI(title="BidSure AI Backend", version="1.0.0")
 
+_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["*"] if _origins == "*" else [o.strip() for o in _origins.split(",")],
     allow_methods=["*"],
     allow_headers=["*"],
 )
