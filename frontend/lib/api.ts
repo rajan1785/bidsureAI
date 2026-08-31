@@ -90,6 +90,7 @@ export const api = {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }),
     }),
   tenderFileUrl: (tenderId: number) => `${API}/tenders/${tenderId}/file`,
+  tenderTextUrl: (tenderId: number) => `${API}/tenders/${tenderId}/extracted-text`,
 
   createBidder: (body: Record<string, string>) =>
     req("/bidders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),

@@ -73,6 +73,10 @@ export default function TenderReview({ params }: { params: Promise<{ id: string 
              className="text-blue-700 hover:underline">
             view tender document ↗
           </a>
+          <a href={api.tenderTextUrl(tenderId)} target="_blank" rel="noreferrer"
+             className="text-blue-700 hover:underline">
+            extracted text (json) ↗
+          </a>
         </p>
       </div>
 
