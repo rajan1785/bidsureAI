@@ -134,7 +134,7 @@ def generate():
                 co["name"],
                 "Company Profile & Tender Declarations",
                 [("Average Annual Turnover", "Rs. 6.20 Crores (last three years)"),
-                 ("Work Experience", "8 years similar security services; certificates enclosed"),
+                 ("Experience Criteria", "Met - 8 years similar work; supporting experience certificates enclosed"),
                  ("Earnest Money Deposit", "Demand Draft for Rs. 6,55,000 enclosed"),
                  ("Wages Compliance", "Rates comply with notified minimum wages"),
                  ("Performance Security", "Bank Guarantee of Rs. 17,00,000 will be furnished on award"),

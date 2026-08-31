@@ -69,6 +69,20 @@ def seed_tender() -> int:
         }, files={"file": (tender_pdf.name, f, "application/pdf")}, timeout=180)
     r.raise_for_status()
     tender = r.json()
+    # officer curation: keep the evidenced custom clauses, remove mined
+    # extras/duplicates (exactly what the review screen is for)
+    KEEP = ("Earnest Money Deposit", "Bidder must meet the experience",
+            "Bidder must demonstrate", "Quoted rates",
+            "Successful bidder must furnish", "Bidder must submit a valid OEM",
+            "Bidder from a land-border")
+    removed = 0
+    for req in tender["requirements"]:
+        if not req["rule_key"] and not req["text"].startswith(KEEP):
+            requests.delete(f"{API}/tenders/{tender['id']}/requirements/{req['id']}",
+                            timeout=10)
+            removed += 1
+    if removed:
+        print(f"officer curation: removed {removed} mined/duplicate requirement(s)")
     requests.post(f"{API}/tenders/{tender['id']}/approve", timeout=10).raise_for_status()
     print(f"tender {tender['id']} uploaded, {len(tender['requirements'])} requirements, approved")
     return tender["id"]
