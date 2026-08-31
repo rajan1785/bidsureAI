@@ -116,7 +116,10 @@ export default function OfficerDashboard() {
                       ) : "—"}
                     </TableCell>
                     <TableCell className="text-sm text-slate-600 max-w-56">
-                      {r.issues.length ? r.issues.join(", ") : "none"}
+                      {r.issues.length
+                        ? r.issues.slice(0, 3).join(", ") +
+                          (r.issues.length > 3 ? ` +${r.issues.length - 3} more` : "")
+                        : "none"}
                     </TableCell>
                     <TableCell>
                       {r.decision ? <Badge>{r.decision}</Badge> : <span className="text-slate-400 text-sm">pending</span>}
