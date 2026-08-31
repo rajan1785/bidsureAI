@@ -147,3 +147,50 @@ def extract_custom_clauses(tender_text: str) -> list[dict]:
             "rule_key": "",  # no built-in rule -> the rule forge drafts one
         })
     return reqs[:8]
+
+
+# --- tender metadata auto-extraction (title / organization / reference no.) ---
+
+_REF_PAT = re.compile(
+    r"(?:Bid Number|Tender Ref\.?\s*No\.?|Reference No\.?|Tender No\.?|NIT No\.?)\s*[:\-]?\s*([A-Z0-9][A-Z0-9/\-\.]{5,40})",
+    re.I,
+)
+_ORG_LABEL = re.compile(r"(?:Organisation Name|Organization Name|Department Name|Ministry/State Name)\s*[:\-]?\s*(.{4,80})", re.I)
+_ORG_LINE = re.compile(r"^(?:THE\s+)?(UNIVERSITY|MINISTRY|DEPARTMENT|GOVERNMENT|MUNICIPAL|CORPORATION|INSTITUTE|COUNCIL|AUTHORITY|BOARD|OFFICE)\b", re.I)
+_TITLE_LINE = re.compile(r"^[A-Z0-9 ,&/\-\(\)\.]{8,80}(?:TENDER|BID|SERVICES|SUPPLY|WORKS)[A-Z0-9 ,&/\-\(\)\.]{0,40}$")
+
+
+def extract_tender_meta(tender_text: str) -> dict:
+    """Best-effort title / organization / reference number from the document."""
+    text = _clean(tender_text)
+    head = [" ".join(l.split()) for l in text.splitlines()[:80] if l.strip()]
+
+    ref = ""
+    m = _REF_PAT.search(text[:4000])
+    if m:
+        ref = m.group(1).strip().rstrip(".")
+
+    org = ""
+    m = _ORG_LABEL.search(text[:6000])
+    if m:
+        org = " ".join(m.group(1).split())[:80].strip(" .,")
+    if not org:
+        for l in head:
+            if _ORG_LINE.match(l) and len(l) < 80:
+                org = l.title().strip(" .,")
+                break
+
+    title = ""
+    for l in head:
+        if _TITLE_LINE.match(l) and "PAGE" not in l.upper():
+            title = l.title()
+            break
+    if not title:
+        # GeM bids: use the item category if present
+        m = re.search(r"Item Category[/\w\s]*?[:\-]\s*(.{5,80})", text[:6000], re.I)
+        if m:
+            title = "GeM Bid — " + " ".join(m.group(1).split())[:60].strip(" .,")
+    if not title:
+        title = f"Tender {ref}" if ref else "Untitled Tender"
+
+    return {"title": title[:120], "organization": org, "ref_no": ref}
