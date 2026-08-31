@@ -85,10 +85,19 @@ def test_scanned_pdf_rasterize_path():
     assert pages and pages[0].endswith(".png")
 
 
-def test_registration_number_label_reassembles_gstin():
+def test_registration_number_label_reassembles_gstin_via_checksum():
+    # Real certificate ground truth: the '/' is a J, and only J validates
+    # against GSTIN's base-36 check digit — no guessing.
     fixes = {f["field"]: f["value"] for f in ocr_correct_identifiers(
         "Registration Number : 27ANEPK2013/1ZA ee Trade Name")}
-    assert fixes.get("gstin") == "27ANEPK2013I1ZA"
+    assert fixes.get("gstin") == "27ANEPK2013J1ZA"
+
+
+def test_gstin_checksum():
+    from app.pipeline.extract import gstin_checksum_ok
+    assert gstin_checksum_ok("27ANEPK2013J1ZA")
+    assert gstin_checksum_ok("33AASCA3660R1Z0")
+    assert not gstin_checksum_ok("27ANEPK2013I1ZA")
 
 
 def test_udyam_label_reassembly():

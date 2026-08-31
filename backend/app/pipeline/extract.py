@@ -74,6 +74,21 @@ def _fix_positions(token: str, spec: str) -> str | None:
     return "".join(out)
 
 
+_B36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+
+def gstin_checksum_ok(g: str) -> bool:
+    """GSTIN's 15th character is a check digit (base-36, alternating factor).
+    Lets us disambiguate OCR misreads deterministically instead of guessing."""
+    if len(g) != 15 or any(c not in _B36 for c in g):
+        return False
+    total = 0
+    for i, ch in enumerate(g[:14]):
+        f = _B36.index(ch) * (2 if i % 2 else 1)
+        total += f // 36 + f % 36
+    return _B36[(36 - total % 36) % 36] == g[14]
+
+
 _PAN_SPEC = "LLLLLDDDDL"
 _GSTIN_SPEC = "DDLLLLLDDDDL*Z*"
 _UDYAM_SPEC = "LLDDDDDDDDD"
@@ -94,20 +109,41 @@ def _label_anchored(text: str) -> list[dict]:
     for field, label_pat, length, spec_name in _LABELS:
         for m in re.finditer(label_pat, text, re.IGNORECASE):
             window = text[m.end(): m.end() + length * 2 + 10]
-            # translate slash/pipe misreads to '1' BEFORE stripping separators,
-            # or the character (and the position alignment) is lost entirely
-            cleaned = re.sub(r"[/|\\]", "1", window.upper())
-            compact = re.sub(r"[^A-Z0-9]", "", cleaned)[:length]
-            if len(compact) < length:
+            # keep slash/pipe misreads as markers; they become candidate positions
+            raw = re.sub(r"[^A-Z0-9/|\\]", "", window.upper())
+            if field == "udyam" and raw.startswith("UDYAM"):
+                raw = raw.replace("UDYAM", "", 1)
+            raw = raw[:length]
+            if len(raw) < length:
                 continue
-            if field == "udyam" and compact.startswith("UDYAM"):
-                compact = re.sub(r"[^A-Z0-9]", "", cleaned.replace("UDYAM", "", 1))[:length]
-            repaired = _fix_positions(compact, specs[spec_name])
-            if field == "udyam" and repaired:
-                repaired = f"UDYAM-{repaired[:2]}-{repaired[2:4]}-{repaired[4:]}"
-            if repaired and PATTERNS[field].fullmatch(repaired):
-                out.append({"field": field, "value": repaired, "confidence": 0.75,
-                            "evidence_location": f"chars {m.start()}-{m.end()+length} (OCR-reassembled near '{field.upper()}' label)"})
+            amb = [i for i, c in enumerate(raw) if c in "/|\\"]
+            if amb:
+                from itertools import product
+                candidates = []
+                for combo in product("J1I7L4", repeat=len(amb)):
+                    chars = list(raw)
+                    for i, c in zip(amb, combo):
+                        chars[i] = c
+                    candidates.append("".join(chars))
+            else:
+                candidates = [raw]
+
+            best, best_conf = None, 0.0
+            for cand in candidates:
+                repaired = _fix_positions(cand, specs[spec_name])
+                if field == "udyam" and repaired:
+                    repaired = f"UDYAM-{repaired[:2]}-{repaired[2:4]}-{repaired[4:]}"
+                if not (repaired and PATTERNS[field].fullmatch(repaired)):
+                    continue
+                if field == "gstin" and gstin_checksum_ok(repaired):
+                    best, best_conf = repaired, 0.9  # checksum-verified
+                    break
+                if best is None:
+                    best, best_conf = repaired, 0.75
+            if best:
+                note = "checksum-verified" if best_conf >= 0.9 else "OCR-reassembled"
+                out.append({"field": field, "value": best, "confidence": best_conf,
+                            "evidence_location": f"chars {m.start()}-{m.end()+length} ({note} near '{field.upper()}' label)"})
                 break
     return out
 
