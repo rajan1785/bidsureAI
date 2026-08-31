@@ -3,6 +3,12 @@
 cd "$(dirname "$0")/.."
 PY=.venv/bin/python
 
+# load local secrets (gitignored) if present
+if [ -f .env ]; then
+  set -a; . ./.env; set +a
+  echo "loaded .env (GEMINI_API_KEY ${GEMINI_API_KEY:+set}${GEMINI_API_KEY:-not set})"
+fi
+
 echo "starting govt api replica on :9000"
 (cd govt-api && ../$PY -m uvicorn main:app --port 9000 &)
 
