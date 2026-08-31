@@ -44,6 +44,9 @@ def create_tender(
             "Could not read any text from this document. Upload a PDF, DOCX or TXT "
             "tender with a text layer (scanned images need Tesseract installed).",
         )
+    tender.extracted_text = ocr["text"]
+    tender.ocr_method = ocr["method"]
+    tender.ocr_confidence = ocr["confidence"]
     meta = extract_tender_meta(ocr["text"])
     tender.title = title.strip() or meta["title"]
     tender.organization = organization.strip() or meta["organization"]
@@ -89,6 +92,24 @@ def get_tender(tender_id: int, db: Session = Depends(get_db)):
     if not t:
         raise HTTPException(404, "tender not found")
     return _tender_dict(t, db)
+
+
+@router.get("/{tender_id}/extracted-text")
+def tender_extracted_text(tender_id: int, db: Session = Depends(get_db)):
+    """Raw text the system read from the tender document, as inspectable JSON —
+    so anyone can match what the AI saw against the real document."""
+    t = db.get(Tender, tender_id)
+    if not t:
+        raise HTTPException(404, "tender not found")
+    return {
+        "tender_id": t.id,
+        "title": t.title,
+        "ref_no": t.ref_no,
+        "read_via": t.ocr_method,
+        "read_confidence": t.ocr_confidence,
+        "characters": len(t.extracted_text or ""),
+        "lines": (t.extracted_text or "").splitlines(),
+    }
 
 
 @router.get("/{tender_id}/file")

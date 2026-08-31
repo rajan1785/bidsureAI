@@ -21,6 +21,9 @@ class Tender(Base):
     status: Mapped[str] = mapped_column(String, default="DRAFT")
     ruleset_version: Mapped[str] = mapped_column(String, default="")
     created_at: Mapped[str] = mapped_column(String, default=utcnow)
+    extracted_text: Mapped[str] = mapped_column(Text, default="")
+    ocr_method: Mapped[str] = mapped_column(String, default="")
+    ocr_confidence: Mapped[float] = mapped_column(Float, default=0.0)
 
     requirements: Mapped[list["Requirement"]] = relationship(back_populates="tender")
 
