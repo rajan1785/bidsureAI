@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: bidsure-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ALLOWED_ORIGINS
+        value: "https://bidsure-ai.vercel.app,http://localhost:3000,http://127.0.0.1:3000"
+      - key: GOVT_API_URL
+        value: "http://127.0.0.1:9000"

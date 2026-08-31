@@ -8,6 +8,7 @@ Usage (backend + govt api must be running):
   python scripts/seed.py --checkpoint full       # + bidder C also evaluated
 """
 import argparse
+import os
 import sqlite3
 import sys
 import time
@@ -16,7 +17,8 @@ from pathlib import Path
 import requests
 
 REPO = Path(__file__).parents[1]
-API = "http://127.0.0.1:8000/api/v1"
+BASE = os.environ.get("BIDSURE_URL", "http://127.0.0.1:8000")
+API = f"{BASE}/api/v1"
 DB = REPO / "backend" / "app.db"
 
 BIDDERS = {
@@ -33,6 +35,9 @@ BIDDERS = {
 
 
 def wipe():
+    if BASE != "http://127.0.0.1:8000":
+        print("remote target - skipping local db wipe")
+        return
     if not DB.exists():
         return
     con = sqlite3.connect(DB)
@@ -49,9 +54,9 @@ def wipe():
 
 def check_services():
     try:
-        requests.get("http://127.0.0.1:8000/health", timeout=3)
+        requests.get(f"{BASE}/health", timeout=5)
     except Exception:
-        sys.exit("backend not running on :8000 — start it first (scripts/start_all.sh)")
+        sys.exit(f"backend not reachable at {BASE} — start it first (scripts/start_all.sh)")
 
 
 def seed_tender() -> int:
