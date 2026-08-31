@@ -6,6 +6,7 @@ import { api, ComparisonRow, riskColor, Tender } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -15,6 +16,7 @@ export default function OfficerDashboard() {
   const [selected, setSelected] = useState<number | null>(null);
   const [rows, setRows] = useState<ComparisonRow[]>([]);
   const [error, setError] = useState("");
+  const [filter, setFilter] = useState("");
 
   const refresh = useCallback(async () => {
     try {
@@ -47,36 +49,48 @@ export default function OfficerDashboard() {
 
       {error && <p className="text-sm text-red-600">Backend not reachable: {error}</p>}
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        {tenders.map((t) => (
-          <Card
-            key={t.id}
-            onClick={() => setSelected(t.id)}
-            className={`cursor-pointer transition ${selected === t.id ? "border-blue-600 shadow-sm" : "hover:border-slate-400"}`}
-          >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base leading-snug">{t.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-slate-500 space-y-1">
-              <p>{t.organization}</p>
-              <div className="flex gap-2 items-center">
-                <Badge variant={t.status === "APPROVED" ? "default" : "secondary"}>{t.status}</Badge>
-                <span>{t.requirements.length} requirements</span>
-              </div>
-              {t.status === "REVIEW" && (
-                <Link href={`/officer/tenders/${t.id}`} className="text-blue-700 font-medium">
-                  Review requirements →
-                </Link>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-        {tenders.length === 0 && !error && (
-          <p className="text-slate-500 text-sm col-span-3">
-            No tenders yet — upload one to get started.
-          </p>
-        )}
-      </div>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>Tenders ({tenders.length})</span>
+            {tenders.length > 4 && (
+              <Input placeholder="Search tenders…" value={filter}
+                onChange={(e) => setFilter(e.target.value)} className="h-8 w-56" />
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="max-h-72 overflow-y-auto divide-y">
+            {tenders
+              .filter((t) => !filter ||
+                (t.title + t.organization + t.ref_no).toLowerCase().includes(filter.toLowerCase()))
+              .map((t) => (
+                <button key={t.id} onClick={() => setSelected(t.id)}
+                  className={`w-full text-left px-4 py-2.5 flex items-center gap-3 flex-wrap transition
+                    ${selected === t.id ? "bg-blue-50 border-l-2 border-blue-600" : "hover:bg-slate-50"}`}>
+                  <span className="font-medium text-sm flex-1 min-w-48">{t.title}</span>
+                  <span className="text-xs text-slate-500 hidden sm:inline">{t.organization}</span>
+                  <Badge variant={t.status === "APPROVED" ? "default" : "secondary"}>{t.status}</Badge>
+                  <span className="text-xs text-slate-500">{t.requirements.length} reqs</span>
+                  {t.status === "REVIEW" ? (
+                    <Link href={`/officer/tenders/${t.id}`} onClick={(e) => e.stopPropagation()}
+                      className="text-blue-700 text-xs font-medium">
+                      Review →
+                    </Link>
+                  ) : (
+                    <Link href={`/officer/tenders/${t.id}`} onClick={(e) => e.stopPropagation()}
+                      className="text-slate-400 text-xs">
+                      view
+                    </Link>
+                  )}
+                </button>
+              ))}
+            {tenders.length === 0 && !error && (
+              <p className="text-slate-500 text-sm p-4">No tenders yet — upload one to get started.</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {selected !== null && (
         <Card>
