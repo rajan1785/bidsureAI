@@ -108,7 +108,8 @@ def tender_extracted_text(tender_id: int, db: Session = Depends(get_db)):
         "read_via": t.ocr_method,
         "read_confidence": t.ocr_confidence,
         "characters": len(t.extracted_text or ""),
-        "lines": _clean(t.extracted_text or "").splitlines(),
+        "lines": [" ".join(l.split()) for l in _clean(t.extracted_text or "").splitlines()
+                  if l.strip()],
     }
 
 
