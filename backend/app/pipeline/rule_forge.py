@@ -118,9 +118,40 @@ Clause: {clause}
 """
 
 
-def draft_rule(clause: str) -> dict:
-    """Returns {rule_type, keywords, threshold, unit, comparator, legal_basis}."""
+MSE_EMD_EXEMPTION = {
+    "when_rule": "udyam_valid", "when_status": "Compliant",
+    "status": "Not Applicable",
+    "because": ("Exempt from EMD: bidder is a Udyam-verified MSE "
+                "(Public Procurement Policy for MSEs Order 2012; GFR 2017 Rule 170). "
+                "Buyer should verify the exemption supporting document."),
+}
+
+MSE_RELAXATION_EXEMPTION = {
+    "when_rule": "udyam_valid", "when_status": "Compliant",
+    "status": "Not Applicable",
+    "because": ("Exempt: this bid grants MSE relaxation for experience/turnover "
+                "and the bidder is a Udyam-verified MSE (subject to meeting "
+                "quality and technical specifications)."),
+}
+
+
+def _policy_exemptions(clause: str, tender_flags: dict | None) -> list[dict]:
+    """GeM-policy exemptions, attached only where the policy actually applies.
+    Deliberately NOT exempted: performance security / ePBG (no MSE exemption
+    in GeM GTC), land-border registration, OEM authorization."""
+    low = clause.lower()
+    if "earnest money" in low or re.search(r"\bemd\b", low):
+        return [MSE_EMD_EXEMPTION]
+    if ("turnover" in low or "experience" in low) and (tender_flags or {}).get("mse_relaxation"):
+        return [MSE_RELAXATION_EXEMPTION]
+    return []
+
+
+def draft_rule(clause: str, tender_flags: dict | None = None) -> dict:
+    """Returns {rule_type, keywords, threshold, unit, comparator, legal_basis,
+    exemptions}."""
     legal_basis = match_rulebook(clause)
+    exemptions = _policy_exemptions(clause, tender_flags)
     out = llm_json(DRAFT_PROMPT.format(clause=clause[:400]),
                    f"rule_draft_{abs(hash(clause)) % 10**10}", feature="draft")
     if isinstance(out, dict) and out.get("rule_type") in RULE_TYPES and out.get("keywords"):
@@ -131,6 +162,7 @@ def draft_rule(clause: str) -> dict:
             "unit": out.get("unit") or "",
             "comparator": out.get("comparator") or ">=",
             "legal_basis": legal_basis,
+            "exemptions": exemptions,
         }
 
     # Deterministic fallback drafter
@@ -144,14 +176,15 @@ def draft_rule(clause: str) -> dict:
             "unit": (m.group(2) or "").lower().rstrip("s"),
             "comparator": ">=",
             "legal_basis": legal_basis,
+            "exemptions": exemptions,
         }
     if _DOC_WORDS.search(clause):
         return {"rule_type": "DOC_PRESENCE", "keywords": _keywords(clause),
                 "threshold": None, "unit": "", "comparator": ">=",
-                "legal_basis": legal_basis}
+                "legal_basis": legal_basis, "exemptions": exemptions}
     return {"rule_type": "DECLARATION", "keywords": _keywords(clause),
             "threshold": None, "unit": "", "comparator": ">=",
-            "legal_basis": legal_basis}
+            "legal_basis": legal_basis, "exemptions": exemptions}
 
 
 # ---------------------------------------------------------------- execution
@@ -176,10 +209,19 @@ def _find_number_near(text: str, keyword: str, unit: str) -> float | None:
     return None
 
 
-def evaluate_dynamic(rule: dict, doc_texts: dict[str, str]) -> dict:
-    """rule: {rule_type, keywords, threshold, unit, comparator, critical}.
-    doc_texts: {filename: extracted text}. Returns {status, reason, evidence}.
+def evaluate_dynamic(rule: dict, doc_texts: dict[str, str],
+                     facts: dict | None = None) -> dict:
+    """rule: {rule_type, keywords, threshold, unit, comparator, critical,
+    exemptions}. doc_texts: {filename: extracted text}. facts: pipeline facts
+    ({'results': {rule_key: status}, 'bidder': {...}}) so rules can reason over
+    verified outcomes, not just document text.
     Missing evidence -> Review Required (never a silent pass, FR-G04 spirit)."""
+    facts = facts or {}
+    for ex in rule.get("exemptions") or []:
+        if facts.get("results", {}).get(ex["when_rule"]) == ex["when_status"]:
+            return {"status": ex["status"], "reason": ex["because"],
+                    "evidence": {"exemption_basis": ex["because"],
+                                 "verified_fact": f"{ex['when_rule']} = {ex['when_status']}"}}
     keywords = [k.lower() for k in rule["keywords"]]
     # A document qualifies only if it matches enough DISTINCT keywords
     # (2-of-N for multi-keyword rules) — one generic word is not evidence.

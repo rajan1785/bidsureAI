@@ -163,7 +163,17 @@ def gem_condition_flags(tender_text: str) -> dict:
         return not re.search(r"Required\s*:?\s*No\b", window, re.I)
 
     mii = not re.search(r"MII Purchase Preference\s*:?\s*No\b", text, re.I)
-    return {"emd": _required("EMD Detail"), "epbg": _required("ePBG Detail"), "mii": mii}
+
+    def _relaxation(label: str) -> bool:
+        m = re.search(re.escape(label), text, re.I)
+        if not m:
+            return False  # relaxation exists only if the bid grants it
+        window = text[m.end(): m.end() + 100]
+        return bool(re.search(r"\bYes\b", window)) and not re.search(r"\bNo\b", window[:40])
+
+    return {"emd": _required("EMD Detail"), "epbg": _required("ePBG Detail"), "mii": mii,
+            "mse_relaxation": _relaxation("MSE Relaxation"),
+            "startup_relaxation": _relaxation("Startup Relaxation")}
 
 
 def extract_custom_clauses(tender_text: str) -> list[dict]:
