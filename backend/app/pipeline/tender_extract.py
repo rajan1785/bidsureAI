@@ -64,7 +64,10 @@ def extract_requirements(tender_text: str) -> list[dict]:
     # Deterministic fallback
     low = tender_text.lower()
     reqs = []
+    flags = gem_condition_flags(tender_text)
     for keywords, text, rtype, rule_key in KEYWORD_REQUIREMENTS:
+        if rule_key == "local_content" and not flags["mii"]:
+            continue  # bid says: MII Purchase Preference No
         if any(k in low for k in keywords):
             reqs.append({"text": text, "type": rtype, "priority": "MANDATORY", "rule_key": rule_key})
     reqs.extend(extract_custom_clauses(tender_text))
@@ -144,9 +147,31 @@ def mine_requirements(tender_text: str, existing_texts: list[str], limit: int = 
     return picked
 
 
+def gem_condition_flags(tender_text: str) -> dict:
+    """GeM bids carry structured Yes/No fields (EMD Required, ePBG Required,
+    MII/MSE preference). Read them so we never demand a document the bid
+    itself says is not required."""
+    text = _clean(tender_text)
+
+    def _required(label: str) -> bool:
+        m = re.search(re.escape(label), text, re.I)
+        if not m:
+            return True  # field absent -> no evidence it's waived
+        window = text[m.end(): m.end() + 120]
+        return not re.search(r"Required\s*:?\s*No\b", window, re.I)
+
+    mii = not re.search(r"MII Purchase Preference\s*:?\s*No\b", text, re.I)
+    return {"emd": _required("EMD Detail"), "epbg": _required("ePBG Detail"), "mii": mii}
+
+
 def extract_custom_clauses(tender_text: str) -> list[dict]:
+    flags = gem_condition_flags(tender_text)
     reqs = []
     for pattern, template in CUSTOM_CLAUSE_PATTERNS:
+        if not flags["emd"] and pattern.startswith("earnest money"):
+            continue  # bid says: EMD Required No
+        if not flags["epbg"] and pattern.startswith("performance security"):
+            continue  # bid says: ePBG Required No
         m = re.search(pattern, tender_text, re.I)
         if not m:
             continue

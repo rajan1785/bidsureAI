@@ -115,3 +115,30 @@ def test_cid_and_hindi_cleanup():
     from app.pipeline.tender_extract import _clean
     out = _clean("(cid:1)(cid:68)bid ठेका Bidder must possess GST registration")
     assert "(cid:" not in out and "GST" in out
+
+
+def test_gem_condition_flags_suppress_waived_requirements():
+    from app.pipeline.tender_extract import extract_requirements, gem_condition_flags
+    text = """Bid Number: GEM/2026/B/7763466
+    EMD Detail
+    Required No
+    ePBG Detail
+    Required No
+    MII Purchase Preference No
+    MSE Purchase Preference Yes
+    OEM Authorization Certificate required from seller.
+    Bidder must possess GST registration and PAN."""
+    flags = gem_condition_flags(text)
+    assert flags == {"emd": False, "epbg": False, "mii": False}
+    keys = [r["rule_key"] for r in extract_requirements(text)]
+    texts = " ".join(r["text"] for r in extract_requirements(text))
+    assert "local_content" not in keys
+    assert "Earnest Money" not in texts
+    assert "performance security" not in texts.lower()
+    assert "OEM Authorization" in texts
+
+
+def test_flags_default_true_for_non_gem_tenders():
+    from app.pipeline.tender_extract import gem_condition_flags
+    flags = gem_condition_flags("Security tender. EMD of Rs 6,55,000 required via demand draft.")
+    assert flags == {"emd": True, "epbg": True, "mii": True}

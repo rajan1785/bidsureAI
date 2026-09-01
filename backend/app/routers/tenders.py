@@ -12,7 +12,7 @@ from app.models import DynamicRule, Requirement, Tender
 from app.pipeline.ocr import extract_text
 from app.pipeline.codegen import generate_code
 from app.pipeline.rule_forge import draft_rule
-from app.pipeline.tender_extract import extract_requirements, extract_tender_meta, KEYWORD_REQUIREMENTS
+from app.pipeline.tender_extract import _clean, extract_requirements, extract_tender_meta, KEYWORD_REQUIREMENTS
 
 router = APIRouter(prefix="/tenders", tags=["tenders"])
 
@@ -108,7 +108,7 @@ def tender_extracted_text(tender_id: int, db: Session = Depends(get_db)):
         "read_via": t.ocr_method,
         "read_confidence": t.ocr_confidence,
         "characters": len(t.extracted_text or ""),
-        "lines": (t.extracted_text or "").splitlines(),
+        "lines": _clean(t.extracted_text or "").splitlines(),
     }
 
 
