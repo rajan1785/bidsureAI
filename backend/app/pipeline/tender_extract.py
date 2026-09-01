@@ -99,6 +99,8 @@ CUSTOM_CLAUSE_PATTERNS = [
      "Bidder must sign and submit the Integrity Pact"),
     (r"land border|rule 144\s*\(xi\)",
      "Bidder from a land-border country must be registered with the competent authority (GFR Rule 144(xi))"),
+    (r"technical specifications|specification parameters|compliance data sheet",
+     "Offered product/service must comply with the tender's technical specifications; supporting technical/compliance documents must be submitted"),
 ]
 
 
@@ -184,7 +186,7 @@ def extract_custom_clauses(tender_text: str) -> list[dict]:
             "priority": "MANDATORY",
             "rule_key": "",  # no built-in rule -> the rule forge drafts one
         })
-    return reqs[:8]
+    return reqs[:9]
 
 
 # --- tender metadata auto-extraction (title / organization / reference no.) ---
