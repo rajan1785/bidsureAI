@@ -51,4 +51,4 @@ def test_generated_code_carries_clause_and_legal_basis():
     assert "R-DYN-7" in code
     assert "General Financial Rules 2017, Rule 170" in code
     assert "EMD must be submitted" in code
-    assert "def check(doc_texts):" in code
+    assert "def check(doc_texts, facts=None):" in code

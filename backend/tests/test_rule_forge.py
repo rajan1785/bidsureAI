@@ -129,7 +129,7 @@ def test_gem_condition_flags_suppress_waived_requirements():
     OEM Authorization Certificate required from seller.
     Bidder must possess GST registration and PAN."""
     flags = gem_condition_flags(text)
-    assert flags == {"emd": False, "epbg": False, "mii": False}
+    assert (flags["emd"], flags["epbg"], flags["mii"]) == (False, False, False)
     keys = [r["rule_key"] for r in extract_requirements(text)]
     texts = " ".join(r["text"] for r in extract_requirements(text))
     assert "local_content" not in keys
@@ -141,4 +141,40 @@ def test_gem_condition_flags_suppress_waived_requirements():
 def test_flags_default_true_for_non_gem_tenders():
     from app.pipeline.tender_extract import gem_condition_flags
     flags = gem_condition_flags("Security tender. EMD of Rs 6,55,000 required via demand draft.")
-    assert flags == {"emd": True, "epbg": True, "mii": True}
+    assert (flags["emd"], flags["epbg"], flags["mii"]) == (True, True, True)
+    assert flags["mse_relaxation"] is False  # relaxation only when the bid grants it
+
+
+
+def test_mse_relaxation_flag_and_exemptions():
+    from app.pipeline.tender_extract import gem_condition_flags
+    granted = gem_condition_flags("MSE Relaxation for Years of Experience and Turnover Yes")
+    denied = gem_condition_flags("MSE Relaxation for Years of No\nExperience and Turnover")
+    assert granted["mse_relaxation"] is True
+    assert denied["mse_relaxation"] is False
+
+    emd = draft_rule("Earnest Money Deposit (EMD) must be submitted")
+    assert emd["exemptions"] and "MSE" in emd["exemptions"][0]["because"]
+
+    # turnover exemption exists ONLY when the bid grants relaxation
+    t_yes = draft_rule("Bidder must demonstrate the required average annual turnover",
+                       {"mse_relaxation": True})
+    t_no = draft_rule("Bidder must demonstrate the required average annual turnover",
+                      {"mse_relaxation": False})
+    assert t_yes["exemptions"] and not t_no["exemptions"]
+
+    # performance security must NEVER carry an MSE exemption (GeM GTC has none)
+    pbg = draft_rule("Successful bidder must furnish performance security as specified")
+    assert not pbg["exemptions"]
+
+
+def test_exemption_uses_verified_facts():
+    from app.pipeline.rule_forge import evaluate_dynamic
+    rule = draft_rule("Earnest Money Deposit (EMD) must be submitted")
+    exempt = evaluate_dynamic(rule, {"x.pdf": "irrelevant"},
+                              {"results": {"udyam_valid": "Compliant"}})
+    assert exempt["status"] == "Not Applicable"
+    assert "Order 2012" in exempt["reason"]
+    not_exempt = evaluate_dynamic(rule, {"x.pdf": "irrelevant"},
+                                  {"results": {"udyam_valid": "Verification Unavailable"}})
+    assert not_exempt["status"] == "Review Required"
