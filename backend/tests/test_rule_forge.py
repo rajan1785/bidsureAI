@@ -25,13 +25,13 @@ def test_draft_threshold_rule_from_numeric_clause():
 def test_draft_presence_rule_from_certificate_clause():
     d = draft_rule("Bidder must submit work experience certificates for similar services")
     assert d["rule_type"] == "DOC_PRESENCE"
-    assert "experience" in d["keywords"]
+    assert any("experience" in k for k in d["keywords"])
 
 
 def test_draft_declaration_rule_otherwise():
     d = draft_rule("Quoted rates must not be below the government-notified minimum wages")
     assert d["rule_type"] == "DECLARATION"
-    assert "wages" in d["keywords"]
+    assert any("wages" in k for k in d["keywords"])
 
 
 def test_threshold_executor_pass_and_fail():

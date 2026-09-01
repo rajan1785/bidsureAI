@@ -25,14 +25,15 @@ def _parse_number(raw, unit):
 
 _HELPERS = '''\
 def _find_hits(doc_texts, keywords):
-    # a document qualifies only with enough distinct keyword matches (2-of-N)
+    # evidence: one matched clause PHRASE, or 2-of-N distinct keywords
     need = min(2, len(keywords))
     hits = []
     for fname, text in doc_texts.items():
         low = text.lower()
         matched = [kw for kw in keywords if re.search("\\\\b" + re.escape(kw), low)]
-        if len(matched) >= need:
-            hits.append((fname, matched[0]))
+        phrase = [m for m in matched if " " in m]
+        if phrase or len(matched) >= need:
+            hits.append((fname, phrase[0] if phrase else matched[0]))
     return hits
 '''
 
@@ -43,12 +44,21 @@ def generate_code(rule: dict, rule_label: str, clause: str) -> str:
     """Render self-contained Python source for this rule's check(doc_texts)."""
     lb = rule.get("legal_basis")
     basis = f"{lb['source']}, {lb['provision']}" if lb else "tender-specific clause"
+    rule_def = {
+        "id": rule_label, "engine": "BidSure Rule Composer (dyn-v1)",
+        "check_type": rule["rule_type"], "critical": bool(rule.get("critical")),
+        "weight": rule.get("weight", 1), "threshold": rule.get("threshold"),
+        "unit": rule.get("unit") or None, "comparator": rule.get("comparator", ">="),
+        "legal_basis": basis,
+    }
     header = (
-        f'"""Auto-generated verification code for {rule_label}.\n'
+        f'"""Verification code for {rule_label} - rendered by the Rule Composer\n'
+        f"from the rule definition below; runs sandboxed in the compliance\n"
+        f"pipeline (built-in executor is the fallback).\n"
         f"Clause: {clause[:120]}\n"
-        f"Legal basis: {basis}\n"
         f'"""\n'
-        f"KEYWORDS = {[k.lower() for k in rule['keywords']]!r}\n"
+        f"RULE = {rule_def!r}\n"
+        f"KEYWORDS = {[k.lower() for k in rule['keywords']]!r}  # evidence phrases from the clause\n"
     )
 
     if rule["rule_type"] == "THRESHOLD" and rule.get("threshold") is not None:

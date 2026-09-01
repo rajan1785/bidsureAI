@@ -66,17 +66,34 @@ _STOPWORDS = {
 }
 
 
+_PHRASE_STOP = {"the", "of", "and", "for", "with", "must", "shall", "be", "is",
+                "are", "to", "in", "a", "an", "not", "than", "as", "from",
+                "any", "all", "his", "their", "this", "that"}
+
+
 def _keywords(text: str, limit: int = 4) -> list[str]:
-    words = re.findall(r"[A-Za-z]{4,}", text.lower())
-    seen, out = set(), []
-    for w in words:
-        if w in _STOPWORDS or w in seen:
+    """Prefer two-word clause phrases ('earnest money', 'competent authority')
+    over loose unigrams — stronger evidence, more faithful to the clause."""
+    words = re.findall(r"[A-Za-z]{3,}", text.lower())
+    phrases, seen = [], set()
+    for a, b in zip(words, words[1:]):
+        if a in _PHRASE_STOP or b in _PHRASE_STOP:
             continue
-        seen.add(w)
-        out.append(w)
+        if a in _STOPWORDS and b in _STOPWORDS:
+            continue
+        ph = f"{a} {b}"
+        if ph not in seen and len(a) >= 4 and len(b) >= 4:
+            seen.add(ph)
+            phrases.append(ph)
+        if len(phrases) >= 2:
+            break
+    out = list(phrases)
+    for w in words:
         if len(out) >= limit:
             break
-    return out
+        if len(w) >= 4 and w not in _STOPWORDS and all(w not in ph for ph in out):
+            out.append(w)
+    return out[:limit]
 
 
 def _to_number(raw: str, unit: str | None) -> float:
@@ -171,8 +188,9 @@ def evaluate_dynamic(rule: dict, doc_texts: dict[str, str]) -> dict:
     for fname, text in doc_texts.items():
         low = text.lower()
         matched = [k for k in keywords if re.search(rf"\b{re.escape(k)}", low)]
-        if len(matched) >= need:
-            hits.append((fname, matched[0]))
+        # a multi-word phrase match is strong evidence on its own
+        if any(" " in m for m in matched) or len(matched) >= need:
+            hits.append((fname, next((m for m in matched if " " in m), matched[0]) if matched else None))
 
     if rule["rule_type"] == "THRESHOLD" and rule.get("threshold") is not None:
         for fname, k in hits:
