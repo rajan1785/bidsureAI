@@ -112,18 +112,24 @@ def run_pipeline(bid_id: int):
         dyn_rules = db.query(DynamicRule).filter_by(tender_id=tender.id, approved=1).all()
         req_texts = {r.id: r.text for r in db.query(Requirement)
                      .filter_by(tender_id=tender.id).all()}
+        # facts: verified outcomes so far — drafted rules reason over these,
+        # e.g. MSE (Udyam-verified) bidders are EMD-exempt per MSE Order 2012
+        facts = {"results": {r["requirement_key"]: r["status"] for r in results},
+                 "bidder": {"legal_name": bidder.legal_name, "pan": bidder.pan,
+                            "gstin": bidder.gstin, "udyam": bidder.udyam}}
         for dr in dyn_rules:
             rule_dict = {"rule_type": dr.rule_type, "keywords": dr.keywords,
                          "threshold": dr.threshold, "unit": dr.unit,
-                         "comparator": dr.comparator, "critical": bool(dr.critical)}
+                         "comparator": dr.comparator, "critical": bool(dr.critical),
+                         "exemptions": dr.exemptions or []}
             try:
                 # primary path: the rule's own generated code, sandboxed
-                verdict = run_generated(dr.generated_code, doc_texts)
+                verdict = run_generated(dr.generated_code, doc_texts, facts)
                 log_event(db, "system", "GENERATED_CODE_EXECUTED",
                           f"bid:{bid.id}", f"R-DYN-{dr.id} via generated check()")
             except Exception as exc:
                 # safety net: deterministic built-in executor
-                verdict = evaluate_dynamic(rule_dict, doc_texts)
+                verdict = evaluate_dynamic(rule_dict, doc_texts, facts)
                 log_event(db, "system", "CODE_EXEC_FALLBACK",
                           f"bid:{bid.id}", f"R-DYN-{dr.id}: {exc}")
             results.append({

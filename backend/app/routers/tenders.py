@@ -12,7 +12,7 @@ from app.models import DynamicRule, Requirement, Tender
 from app.pipeline.ocr import extract_text
 from app.pipeline.codegen import generate_code
 from app.pipeline.rule_forge import draft_rule
-from app.pipeline.tender_extract import _clean, extract_requirements, extract_tender_meta, KEYWORD_REQUIREMENTS
+from app.pipeline.tender_extract import _clean, extract_requirements, extract_tender_meta, gem_condition_flags, KEYWORD_REQUIREMENTS
 
 router = APIRouter(prefix="/tenders", tags=["tenders"])
 
@@ -51,6 +51,7 @@ def create_tender(
     tender.title = title.strip() or meta["title"]
     tender.organization = organization.strip() or meta["organization"]
     tender.ref_no = ref_no.strip() or meta["ref_no"]
+    tender_flags = gem_condition_flags(ocr["text"])
     reqs = extract_requirements(ocr["text"])
     drafted = 0
     for r in reqs:
@@ -60,12 +61,13 @@ def create_tender(
         db.flush()
         if not r["rule_key"]:
             # no built-in rule covers this clause -> forge drafts one
-            d = draft_rule(r["text"])
+            d = draft_rule(r["text"], tender_flags)
             dr = DynamicRule(tender_id=tender.id, requirement_id=req.id,
                              rule_type=d["rule_type"], keywords=d["keywords"],
                              threshold=d["threshold"], unit=d["unit"],
                              comparator=d["comparator"],
-                             legal_basis=d.get("legal_basis"))
+                             legal_basis=d.get("legal_basis"),
+                             exemptions=d.get("exemptions") or [])
             db.add(dr)
             db.flush()
             dr.generated_code = generate_code(d, f"R-DYN-{dr.id}", r["text"])
@@ -147,11 +149,12 @@ def add_requirement(tender_id: int, body: ReqAdd, db: Session = Depends(get_db))
     db.add(req)
     db.flush()
     if not rule_key:
-        d = draft_rule(text)
+        d = draft_rule(text, gem_condition_flags(t.extracted_text or ""))
         dr = DynamicRule(tender_id=tender_id, requirement_id=req.id,
                          rule_type=d["rule_type"], keywords=d["keywords"],
                          threshold=d["threshold"], unit=d["unit"],
                          comparator=d["comparator"], legal_basis=d.get("legal_basis"),
+                         exemptions=d.get("exemptions") or [],
                          approved=already_approved)
         db.add(dr)
         db.flush()
@@ -219,7 +222,8 @@ def _tender_dict(t: Tender, db: Session):
         return {"id": d.id, "rule_type": d.rule_type, "keywords": d.keywords,
                 "threshold": d.threshold, "unit": d.unit, "comparator": d.comparator,
                 "version": d.version, "approved": bool(d.approved),
-                "legal_basis": d.legal_basis, "generated_code": d.generated_code}
+                "legal_basis": d.legal_basis, "generated_code": d.generated_code,
+                "exemptions": d.exemptions or []}
     return {
         "id": t.id, "title": t.title, "organization": t.organization, "ref_no": t.ref_no,
         "status": t.status, "ruleset_version": t.ruleset_version, "created_at": t.created_at,

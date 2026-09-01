@@ -51,6 +51,16 @@ def generate_code(rule: dict, rule_label: str, clause: str) -> str:
         "unit": rule.get("unit") or None, "comparator": rule.get("comparator", ">="),
         "legal_basis": basis,
     }
+    exemption_src = ""
+    for ex in rule.get("exemptions") or []:
+        exemption_src += f'''
+    # POLICY EXEMPTION - decided on VERIFIED FACTS, not document text:
+    # {ex["because"][:100]}
+    if facts.get("results", {{}}).get({ex["when_rule"]!r}) == {ex["when_status"]!r}:
+        return {{"status": {ex["status"]!r},
+                 "reason": {ex["because"]!r},
+                 "evidence": {{"verified_fact": "{ex["when_rule"]} = {ex["when_status"]}"}}}}
+'''
     header = (
         f'"""Verification code for {rule_label} - rendered by the Rule Composer\n'
         f"from the rule definition below; runs sandboxed in the compliance\n"
@@ -69,8 +79,9 @@ UNIT = {rule.get("unit", "")!r}
 
 {_HELPERS}
 
-def check(doc_texts):
-    hits = _find_hits(doc_texts, KEYWORDS)
+def check(doc_texts, facts=None):
+    facts = facts or {{}}
+{exemption_src}    hits = _find_hits(doc_texts, KEYWORDS)
     for fname, kw in hits:
         low = doc_texts[fname].lower()
         for m in re.finditer(re.escape(kw), low):
@@ -93,8 +104,9 @@ def check(doc_texts):
         miss = "Non-Compliant" if rule.get("critical") else "Review Required"
         body = f'''{_HELPERS}
 
-def check(doc_texts):
-    hits = _find_hits(doc_texts, KEYWORDS)
+def check(doc_texts, facts=None):
+    facts = facts or {{}}
+{exemption_src}    hits = _find_hits(doc_texts, KEYWORDS)
     if hits:
         fname, kw = hits[0]
         return {{"status": "Compliant",
@@ -107,8 +119,9 @@ def check(doc_texts):
     else:  # DECLARATION
         body = f'''{_HELPERS}
 
-def check(doc_texts):
-    hits = _find_hits(doc_texts, KEYWORDS)
+def check(doc_texts, facts=None):
+    facts = facts or {{}}
+{exemption_src}    hits = _find_hits(doc_texts, KEYWORDS)
     if hits:
         fname, kw = hits[0]
         return {{"status": "Compliant",
@@ -121,12 +134,16 @@ def check(doc_texts):
     return header + body
 
 
-def run_generated(code: str, doc_texts: dict[str, str]) -> dict:
+def run_generated(code: str, doc_texts: dict[str, str],
+                  facts: dict | None = None) -> dict:
     """Execute generated check() in a restricted namespace. Raises on failure —
     the caller decides the fallback (built-in executor)."""
     ns: dict = dict(SAFE_GLOBALS)
     exec(compile(code, "<generated-rule>", "exec"), ns)  # noqa: S102
-    result = ns["check"](doc_texts)
+    try:
+        result = ns["check"](doc_texts, facts or {})
+    except TypeError:
+        result = ns["check"](doc_texts)  # older stored code without facts param
     if not (isinstance(result, dict) and result.get("status") and result.get("reason")):
         raise ValueError("generated check() returned invalid result")
     return result
