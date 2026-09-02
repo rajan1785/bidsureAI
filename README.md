@@ -10,18 +10,40 @@ requirements, verifies every bidder document against government records, and
 gives the officer an evidence-backed scorecard — while the final decision
 always stays with the officer.
 
+## [Live demo](https://bidsure-ai.vercel.app) 🔗
+
+| Product overview | Tender upload |
+| --- | --- |
+| ![BidSure AI landing page](screenshot/landing-page.png) | ![Tender upload](screenshot/tender-upload.png) |
+
+| Extracted requirements | Bidder document upload |
+| --- | --- |
+| ![Extracted requirements](screenshot/extracted-requirements.png) | ![Bidder document upload](screenshot/bidder-docs-upload.png) |
+
+| Compliance check | Score and report |
+| --- | --- |
+| ![Compliance check](screenshot/compliance-check.png) | ![Score and report](screenshot/score-n-report.png) |
+
 ## How it works
 
-```
-Tender PDF ──> requirement extraction ──> officer review & approval ──> rule set
-                                                                          │
-Bidder docs ──> OCR ──> classification ──> field extraction ──┐           │
-                                                              ▼           ▼
-                        govt source verification ──> cross-check ──> rules engine
-                                                                          │
-                                     score + risk <── AI recommendation <─┘
-                                            │
-                                  officer decision + audit trail
+```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 8, 'rankSpacing': 12, 'padding': 0}, 'themeVariables': {'fontSize': '12px'}}}%%
+flowchart TD
+  tender[Tender PDF] --> tender_ocr[Tender OCR]
+  tender_ocr --> requirements[Extract requirements]
+  requirements --> review[Officer approval]
+  review --> ruleset[Rule set]
+  ruleset --> docs[Bidder docs]
+  docs --> ocr[OCR]
+  ocr --> classification[Classify]
+  classification --> extraction[Extract fields]
+  extraction --> verification[Verify government records]
+  verification --> crosscheck[Cross-check]
+  ruleset --> engine[Rules engine]
+  crosscheck --> engine
+  engine --> score[Score and risk]
+  score --> recommendation[AI recommendation]
+  recommendation --> decision[Officer decision and audit trail]
 ```
 
 - **Requirement extraction** — reads the tender and builds an editable
