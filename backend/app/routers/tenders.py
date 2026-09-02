@@ -8,7 +8,11 @@ from sqlalchemy.orm import Session
 
 from app.audit import log_event
 from app.db import UPLOADS_DIR, get_db
-from app.models import DynamicRule, Requirement, Tender
+from pathlib import Path
+
+from app.models import (Bid, ComplianceResult, Document, DynamicRule,
+                        ExtractedField, GovtRecord, OfficerDecision,
+                        Recommendation, Requirement, RiskAssessment, Tender)
 from app.pipeline.ocr import extract_text
 from app.pipeline.codegen import generate_code
 from app.pipeline.rule_forge import draft_rule
@@ -94,6 +98,45 @@ def get_tender(tender_id: int, db: Session = Depends(get_db)):
     if not t:
         raise HTTPException(404, "tender not found")
     return _tender_dict(t, db)
+
+
+@router.delete("/{tender_id}")
+def delete_tender(tender_id: int, db: Session = Depends(get_db)):
+    """Delete a tender and everything under it: requirements, drafted rules,
+    bids, uploaded documents (rows AND files), results, decisions."""
+    t = db.get(Tender, tender_id)
+    if not t:
+        raise HTTPException(404, "tender not found")
+    title = t.title
+    bids = db.query(Bid).filter_by(tender_id=tender_id).all()
+    removed_files = 0
+    for bid in bids:
+        docs = db.query(Document).filter_by(bid_id=bid.id).all()
+        for doc in docs:
+            db.query(ExtractedField).filter_by(document_id=doc.id).delete()
+            try:
+                Path(doc.file_path).unlink(missing_ok=True)
+                removed_files += 1
+            except OSError:
+                pass
+            db.delete(doc)
+        for model in (GovtRecord, ComplianceResult, RiskAssessment,
+                      Recommendation, OfficerDecision):
+            db.query(model).filter_by(bid_id=bid.id).delete()
+        db.delete(bid)
+    db.query(DynamicRule).filter_by(tender_id=tender_id).delete()
+    db.query(Requirement).filter_by(tender_id=tender_id).delete()
+    if t.file_path:
+        try:
+            Path(t.file_path).unlink(missing_ok=True)
+            removed_files += 1
+        except OSError:
+            pass
+    db.delete(t)
+    db.commit()
+    log_event(db, "officer", "TENDER_DELETED", f"tender:{tender_id}",
+              f"{title} ({len(bids)} bid(s), {removed_files} file(s) removed)")
+    return {"ok": True, "deleted_bids": len(bids), "deleted_files": removed_files}
 
 
 @router.get("/{tender_id}/extracted-text")

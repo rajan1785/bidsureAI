@@ -38,6 +38,17 @@ export default function OfficerDashboard() {
     return () => clearInterval(t);
   }, [refresh]);
 
+  async function removeTender(e: React.MouseEvent, id: number, title: string) {
+    e.stopPropagation();
+    if (!window.confirm(`Delete "${title}" and ALL its bids and documents? This cannot be undone.`)) return;
+    await api.deleteTender(id);
+    if (selected === id) {
+      setSelected(null);
+      setRows([]);
+    }
+    refresh();
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -83,6 +94,11 @@ export default function OfficerDashboard() {
                       view
                     </Link>
                   )}
+                  <button onClick={(e) => removeTender(e, t.id, t.title)}
+                    title="Delete tender and all its bids"
+                    className="text-red-500 hover:text-red-700 text-xs px-1">
+                    🗑
+                  </button>
                 </button>
               ))}
             {tenders.length === 0 && !error && (

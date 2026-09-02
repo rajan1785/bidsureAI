@@ -114,3 +114,21 @@ def test_full_flow_bidder_a(tmp_path):
     audit = client.get("/api/v1/audit").json()
     actions = {e["action"] for e in audit}
     assert {"TENDER_CREATED", "BID_SUBMITTED", "PIPELINE_DONE", "DECISION_RECORDED"} <= actions
+
+
+def test_delete_tender_cascades(tmp_path):
+    # create a throwaway tender + bid + doc, then delete everything
+    tf = tmp_path / "t.txt"
+    tf.write_text("Bidder must possess GST registration and PAN.")
+    t = client.post("/api/v1/tenders", data={"title": "Delete Me"},
+                    files={"file": ("t.txt", tf.read_bytes(), "text/plain")}).json()
+    b = client.post("/api/v1/bidders", json={"legal_name": "Del Co", "pan": "AAECS1234F"}).json()
+    bid = client.post("/api/v1/bids", json={"tender_id": t["id"], "bidder_id": b["id"]}).json()
+    client.post(f"/api/v1/bids/{bid['id']}/documents",
+                files={"file": ("d.txt", b"PAN AAECS1234F", "text/plain")})
+
+    r = client.delete(f"/api/v1/tenders/{t['id']}")
+    assert r.status_code == 200
+    assert r.json()["deleted_bids"] == 1
+    assert client.get(f"/api/v1/tenders/{t['id']}").status_code == 404
+    assert client.get(f"/api/v1/bids/{bid['id']}").status_code == 404
