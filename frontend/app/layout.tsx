@@ -44,7 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </header>
         <main className="mx-auto max-w-6xl w-full px-4 py-8 flex-1">{children}</main>
         <footer className="border-t bg-white py-4 text-center text-xs text-slate-500">
-          BidSure AI prototype — SIH 2026 · Government verifications use a mock API replica
+          BidSure AI prototype — SIH 2026
         </footer>
       </body>
     </html>

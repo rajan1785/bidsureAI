@@ -49,6 +49,21 @@ export default function Home() {
         </Link>
       </section>
 
+      <section className="mx-auto max-w-3xl rounded-lg border border-blue-100 bg-blue-50 p-5 text-center">
+        <p className="font-semibold text-slate-900">Need documents to try the prototype?</p>
+        <p className="mt-1 text-sm text-slate-600">
+          Download the sample tender and bidder documents from the shared test folder.
+        </p>
+        <a
+          href="https://drive.google.com/drive/folders/1jusSpynh7eabU4uxHaunR0Of82V6NobM?usp=drive_link"
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-block font-medium text-blue-700 hover:text-blue-900 hover:underline"
+        >
+          Download sample documents →
+        </a>
+      </section>
+
       <section className="grid gap-4 sm:grid-cols-4 text-center text-sm">
         {[
           ["1. Tender", "Requirements extracted by AI, approved by the officer"],
