@@ -76,8 +76,10 @@ export default function OfficerDashboard() {
               .filter((t) => !filter ||
                 (t.title + t.organization + t.ref_no).toLowerCase().includes(filter.toLowerCase()))
               .map((t) => (
-                <button key={t.id} onClick={() => setSelected(t.id)}
-                  className={`w-full text-left px-4 py-2.5 flex items-center gap-3 flex-wrap transition
+                <div key={t.id} role="button" tabIndex={0}
+                  onClick={() => setSelected(t.id)}
+                  onKeyDown={(e) => e.key === "Enter" && setSelected(t.id)}
+                  className={`w-full text-left px-4 py-2.5 flex items-center gap-3 flex-wrap transition cursor-pointer
                     ${selected === t.id ? "bg-blue-50 border-l-2 border-blue-600" : "hover:bg-slate-50"}`}>
                   <span className="font-medium text-sm flex-1 min-w-48">{t.title}</span>
                   <span className="text-xs text-slate-500 hidden sm:inline">{t.organization}</span>
@@ -99,7 +101,7 @@ export default function OfficerDashboard() {
                     className="text-red-500 hover:text-red-700 text-xs px-1">
                     🗑
                   </button>
-                </button>
+                </div>
               ))}
             {tenders.length === 0 && !error && (
               <p className="text-slate-500 text-sm p-4">No tenders yet — upload one to get started.</p>
