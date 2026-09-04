@@ -79,7 +79,7 @@ scikit-learn · sentence-transformers (all-MiniLM-L6-v2, self-hosted) ·
 optional Gemini for requirement extraction / recommendation prose (offline
 fallbacks built in — the demo runs with no network at all).
 
-## Setup
+## Setup (macOS / Linux)
 
 ```bash
 # python
@@ -92,6 +92,43 @@ cd frontend && npm install && cd ..
 
 # train the document classifier (weights are committed, rerun if you change the corpus)
 .venv/bin/python scripts/train_classifier.py
+```
+
+## Setup (Windows)
+
+```powershell
+# python (3.11+)
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+
+# tesseract (for scanned documents) - installer adds it to PATH; restart the terminal after
+winget install UB-Mannheim.TesseractOCR
+
+# frontend
+cd frontend; npm install; cd ..
+
+# train the document classifier (weights are committed, rerun only if you change the corpus)
+.venv\Scripts\python scripts\train_classifier.py
+```
+
+Run on Windows (three terminals, or use `Start-Process`):
+
+```powershell
+# terminal 1 - govt api replica
+cd govt-api; ..\.venv\Scripts\python -m uvicorn main:app --port 9000
+
+# terminal 2 - backend (set the optional Gemini key first if you have one)
+$env:GEMINI_API_KEY = "your-key"; $env:GEMINI_FEATURES = "recommend"
+cd backend; ..\.venv\Scripts\python -m uvicorn app.main:app --port 8000
+
+# terminal 3 - frontend
+cd frontend; npm run dev
+```
+
+Seed demo data (any terminal, services running):
+
+```powershell
+.venv\Scripts\python scripts\seed.py --checkpoint evaluated
 ```
 
 ## Run
