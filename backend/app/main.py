@@ -32,6 +32,8 @@ def register_routers():
 
 try:
     register_routers()
+    from app.autoseed import maybe_autoseed
+    maybe_autoseed(app)
 except ImportError:
     # Routers land in Task 6; skeleton stays runnable until then.
     pass
