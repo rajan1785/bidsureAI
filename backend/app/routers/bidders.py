@@ -1,12 +1,13 @@
 import re
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from app.audit import log_event
+from app.auth.dependencies import get_current_user, require_role
 from app.db import get_db
-from app.models import Bidder
+from app.models import Bidder, User
 
 router = APIRouter(prefix="/bidders", tags=["bidders"])
 
@@ -38,18 +39,34 @@ class BidderIn(BaseModel):
         return v
 
 
-@router.post("")
-def create_bidder(body: BidderIn, db: Session = Depends(get_db)):
-    b = Bidder(**body.model_dump())
-    db.add(b)
+@router.post("", dependencies=[Depends(get_current_user)])
+def create_bidder(body: BidderIn, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role == "bidder":
+        # Bidder can only create/update their own profile
+        bidder = db.query(Bidder).filter_by(user_id=current_user.id).first()
+        if not bidder:
+            raise HTTPException(404, "Bidder profile not found")
+        for k, v in body.model_dump().items():
+            setattr(bidder, k, v)
+    elif current_user.role == "officer":
+        # Officer creates bidder for their org
+        bidder = Bidder(**body.model_dump(), organization_id=current_user.organization_id)
+        db.add(bidder)
+    else:
+        raise HTTPException(403, "Not authorized")
     db.commit()
-    log_event(db, "bidder", "BIDDER_REGISTERED", f"bidder:{b.id}", b.legal_name)
-    return _dict(b)
+    log_event(db, current_user.role, "BIDDER_UPSERTED", f"bidder:{bidder.id}", bidder.legal_name)
+    return _dict(bidder)
 
 
-@router.get("")
-def list_bidders(db: Session = Depends(get_db)):
-    return [_dict(b) for b in db.query(Bidder).all()]
+@router.get("", dependencies=[Depends(get_current_user)])
+def list_bidders(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role == "officer":
+        return [_dict(b) for b in db.query(Bidder).filter_by(organization_id=current_user.organization_id).all()]
+    elif current_user.role == "bidder":
+        bidder = db.query(Bidder).filter_by(user_id=current_user.id).first()
+        return [_dict(bidder)] if bidder else []
+    return [_dict(b) for b in db.query(Bidder).all()]  # admin
 
 
 def _dict(b: Bidder):

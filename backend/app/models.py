@@ -10,11 +10,40 @@ def utcnow():
     return datetime.now(timezone.utc).isoformat()
 
 
+class Organization(Base):
+    __tablename__ = "organizations"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String, unique=True)
+    gem_org_id: Mapped[str] = mapped_column(String, default="", unique=True)
+    is_active: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[str] = mapped_column(String, default=utcnow)
+
+    users: Mapped[list["User"]] = relationship(back_populates="organization")
+    tenders: Mapped[list["Tender"]] = relationship(back_populates="organization")
+    bidders: Mapped[list["Bidder"]] = relationship(back_populates="organization")
+
+
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    hashed_password: Mapped[str] = mapped_column(String)
+    full_name: Mapped[str] = mapped_column(String, default="")
+    role: Mapped[str] = mapped_column(String, default="bidder")  # bidder | officer | admin
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"))
+    is_active: Mapped[int] = mapped_column(Integer, default=0)  # 0 = pending admin approval
+    last_login: Mapped[str] = mapped_column(String, default="")
+    created_at: Mapped[str] = mapped_column(String, default=utcnow)
+
+    organization: Mapped["Organization"] = relationship(back_populates="users")
+    bidder_id: Mapped[int] = mapped_column(ForeignKey("bidders.id"), nullable=True)
+
+
 class Tender(Base):
     __tablename__ = "tenders"
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String)
-    organization: Mapped[str] = mapped_column(String, default="")
+    org_name: Mapped[str] = mapped_column(String, default="")
     ref_no: Mapped[str] = mapped_column(String, default="")
     file_path: Mapped[str] = mapped_column(String, default="")
     # DRAFT -> EXTRACTING -> REVIEW (requirements ready) -> APPROVED
@@ -24,7 +53,10 @@ class Tender(Base):
     extracted_text: Mapped[str] = mapped_column(Text, default="")
     ocr_method: Mapped[str] = mapped_column(String, default="")
     ocr_confidence: Mapped[float] = mapped_column(Float, default=0.0)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), default=1)
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
 
+    organization: Mapped["Organization"] = relationship(back_populates="tenders")
     requirements: Mapped[list["Requirement"]] = relationship(back_populates="tender")
 
 
@@ -76,6 +108,10 @@ class Bidder(Base):
     udyam: Mapped[str] = mapped_column(String, default="")
     epfo_code: Mapped[str] = mapped_column(String, default="")
     contact_email: Mapped[str] = mapped_column(String, default="")
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), default=1)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    organization: Mapped["Organization"] = relationship(back_populates="bidders")
 
 
 class Bid(Base):
@@ -87,6 +123,7 @@ class Bid(Base):
     # DRAFT -> then pipeline stages: OCR, EXTRACT, GOVT_VERIFY, CROSSCHECK,
     # RULES, SCORING, RECOMMEND, DONE, ERROR
     pipeline_status: Mapped[str] = mapped_column(String, default="DRAFT")
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     bidder: Mapped["Bidder"] = relationship()
     documents: Mapped[list["Document"]] = relationship(back_populates="bid")

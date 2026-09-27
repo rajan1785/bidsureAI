@@ -1,26 +1,130 @@
+"use client";
+
 import Link from "next/link";
+import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Home() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      </div>
+    );
+  }
+
+  if (user) {
+    const redirect = user.role === "officer" || user.role === "admin" ? "/officer" : "/bidder";
+    return (
+      <div className="space-y-10">
+        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-950 via-blue-900 to-blue-700 px-6 py-10 text-center text-white shadow-lg shadow-blue-950/10 sm:py-14">
+          <div className="pointer-events-none absolute -right-16 -top-28 h-72 w-72 rounded-full border-[30px] border-white/5" />
+          <div className="relative mx-auto max-w-2xl space-y-4">
+            <p className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wide text-blue-100">
+              AI-powered bid compliance workspace
+            </p>
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Welcome back, <span className="text-blue-200">{user.full_name || user.email}</span>
+            </h1>
+            <p className="mx-auto max-w-xl text-sm leading-6 text-blue-100/90">
+              Signed in as <span className="font-semibold capitalize text-white">{user.role}</span>. Pick up where you left off.
+            </p>
+          </div>
+        </section>
+
+        <section className="grid gap-6 sm:grid-cols-2 max-w-3xl mx-auto">
+          {(user.role === "officer" || user.role === "admin") && (
+            <Link href="/officer">
+              <Card className="h-full border-slate-200 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-950/5">
+                <CardHeader>
+                  <CardTitle>Officer Dashboard</CardTitle>
+                  <CardDescription>
+                    Manage tenders, review bids, compare bidders and record decisions.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm text-blue-700 font-medium">
+                  Open dashboard →
+                </CardContent>
+              </Card>
+            </Link>
+          )}
+          {(user.role === "officer" || user.role === "admin") && (
+            <Link href="/officer/tenders/new">
+              <Card className="h-full border-slate-200 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-950/5">
+                <CardHeader>
+                  <CardTitle>Create New Tender</CardTitle>
+                  <CardDescription>
+                    Upload a tender document and extract compliance requirements.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm text-blue-700 font-medium">
+                  Upload tender →
+                </CardContent>
+              </Card>
+            </Link>
+          )}
+          {user.role === "bidder" && (
+            <Link href="/bidder">
+              <Card className="h-full border-slate-200 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-950/5">
+                <CardHeader>
+                  <CardTitle>Bidder Portal</CardTitle>
+                  <CardDescription>
+                    Register your firm, upload documents and submit bids for verification.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm text-blue-700 font-medium">
+                  Open portal →
+                </CardContent>
+              </Card>
+            </Link>
+          )}
+          {(user.role === "admin" || user.role === "officer") && (
+            <Link href="/admin">
+              <Card className="hover:border-blue-600 hover:shadow-md transition cursor-pointer h-full">
+                <CardHeader>
+                  <CardTitle>Admin Panel</CardTitle>
+                  <CardDescription>
+                    Manage users and approve pending registrations.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm text-blue-700 font-medium">
+                  Open admin →
+                </CardContent>
+              </Card>
+            </Link>
+          )}
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-10">
-      <section className="text-center space-y-4 py-8">
-        <p className="text-sm font-semibold text-blue-700 uppercase tracking-wide">
-          AI-Powered Bid Compliance Verification
-        </p>
-        <h1 className="text-4xl font-bold tracking-tight">
-          Verify every bid. <span className="text-blue-700">Trust every decision.</span>
-        </h1>
-        <p className="mx-auto max-w-2xl text-slate-600">
-          BidSure AI extracts tender requirements, reads bidder documents, verifies them
-          against government sources, and gives procurement officers an evidence-backed
-          compliance report — with the final decision always in human hands.
-        </p>
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-950 via-blue-900 to-blue-700 px-6 py-12 text-center text-white shadow-lg shadow-blue-950/10 sm:py-16">
+        <div className="pointer-events-none absolute -right-16 -top-28 h-72 w-72 rounded-full border-[30px] border-white/5" />
+        <div className="pointer-events-none absolute -bottom-36 left-10 h-64 w-64 rounded-full border-[26px] border-white/5" />
+        <div className="relative mx-auto max-w-3xl space-y-5">
+          <p className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wide text-blue-100">
+            AI-powered bid compliance verification
+          </p>
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+            Verify every bid.<br className="sm:hidden" /> <span className="text-blue-200">Trust every decision.</span>
+          </h1>
+          <p className="mx-auto max-w-2xl text-sm leading-6 text-blue-100/90 sm:text-base">
+            Extract tender requirements, verify bidder documents against government sources, and give procurement officers an evidence-backed compliance report—with the final decision always in human hands.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3 pt-1">
+            <Link href="/login?redirect=/officer" className="rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-blue-900 shadow-sm transition hover:bg-blue-50">Officer sign in</Link>
+            <Link href="/login?redirect=/bidder" className="rounded-lg border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20">Bidder sign in</Link>
+          </div>
+        </div>
       </section>
 
       <section className="grid gap-6 sm:grid-cols-2 max-w-3xl mx-auto">
-        <Link href="/officer">
-          <Card className="hover:border-blue-600 hover:shadow-md transition cursor-pointer h-full">
+        <Link href="/login?redirect=/officer">
+            <Card className="h-full border-slate-200 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-950/5">
             <CardHeader>
               <CardTitle>Procurement Officer</CardTitle>
               <CardDescription>
@@ -29,12 +133,12 @@ export default function Home() {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-sm text-blue-700 font-medium">
-              Open officer dashboard →
+              Login as officer →
             </CardContent>
           </Card>
         </Link>
-        <Link href="/bidder">
-          <Card className="hover:border-blue-600 hover:shadow-md transition cursor-pointer h-full">
+        <Link href="/login?redirect=/bidder">
+            <Card className="h-full border-slate-200 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-950/5">
             <CardHeader>
               <CardTitle>Bidder</CardTitle>
               <CardDescription>
@@ -43,7 +147,7 @@ export default function Home() {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-sm text-blue-700 font-medium">
-              Open bidder portal →
+              Login as bidder →
             </CardContent>
           </Card>
         </Link>

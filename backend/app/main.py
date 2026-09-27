@@ -25,8 +25,9 @@ def health():
 
 def register_routers():
     from app.routers import audit, bidders, bids, dashboard, tenders
+    from app.auth import auth_router
 
-    for r in (tenders.router, bidders.router, bids.router, dashboard.router, audit.router):
+    for r in (auth_router, tenders.router, bidders.router, bids.router, dashboard.router, audit.router):
         app.include_router(r, prefix="/api/v1")
 
 

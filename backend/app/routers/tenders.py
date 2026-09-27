@@ -7,12 +7,13 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.audit import log_event
+from app.auth.dependencies import get_current_user, require_role
 from app.db import UPLOADS_DIR, get_db
 from pathlib import Path
 
 from app.models import (Bid, ComplianceResult, Document, DynamicRule,
                         ExtractedField, GovtRecord, OfficerDecision,
-                        Recommendation, Requirement, RiskAssessment, Tender)
+                        Recommendation, Requirement, RiskAssessment, Tender, User)
 from app.pipeline.ocr import extract_text
 from app.pipeline.codegen import generate_code
 from app.pipeline.rule_forge import draft_rule
@@ -21,15 +22,23 @@ from app.pipeline.tender_extract import _clean, extract_requirements, extract_te
 router = APIRouter(prefix="/tenders", tags=["tenders"])
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(require_role("officer", "admin"))])
 def create_tender(
     title: str = Form(""),
     organization: str = Form(""),
     ref_no: str = Form(""),
     file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    tender = Tender(title=title, organization=organization, ref_no=ref_no, status="EXTRACTING")
+    tender = Tender(
+        title=title,
+        org_name=organization,
+        ref_no=ref_no,
+        status="EXTRACTING",
+        organization_id=current_user.organization_id,
+        created_by=current_user.id,
+    )
     db.add(tender)
     db.commit()
 
@@ -53,7 +62,7 @@ def create_tender(
     tender.ocr_confidence = ocr["confidence"]
     meta = extract_tender_meta(ocr["text"])
     tender.title = title.strip() or meta["title"]
-    tender.organization = organization.strip() or meta["organization"]
+    tender.org_name = organization.strip() or meta["organization"]
     tender.ref_no = ref_no.strip() or meta["ref_no"]
     tender_flags = gem_condition_flags(ocr["text"])
     reqs = extract_requirements(ocr["text"])
@@ -84,29 +93,47 @@ def create_tender(
     log_event(db, "officer", "TENDER_CREATED", f"tender:{tender.id}", tender.title)
     log_event(db, "system", "REQUIREMENTS_EXTRACTED", f"tender:{tender.id}",
               f"{len(reqs)} candidate requirements (ocr={ocr['method']})")
-    return get_tender(tender.id, db)
+    return _get_tender_internal(tender.id, db, current_user)
 
 
-@router.get("")
-def list_tenders(db: Session = Depends(get_db)):
-    return [_tender_dict(t, db) for t in db.query(Tender).all()]
+@router.get("", dependencies=[Depends(get_current_user)])
+def list_tenders(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role == "officer":
+        tenders = db.query(Tender).filter_by(organization_id=current_user.organization_id).all()
+    else:
+        # Bidder sees only APPROVED tenders
+        tenders = db.query(Tender).filter_by(status="APPROVED").all()
+    return [_tender_dict(t, db) for t in tenders]
 
 
-@router.get("/{tender_id}")
-def get_tender(tender_id: int, db: Session = Depends(get_db)):
+def _get_tender_internal(tender_id: int, db: Session, current_user: User) -> dict:
+    """Internal helper to get tender dict with auth checks."""
     t = db.get(Tender, tender_id)
     if not t:
         raise HTTPException(404, "tender not found")
+    # Officer: must be same org
+    if current_user.role == "officer" and t.organization_id != current_user.organization_id:
+        raise HTTPException(403, "Not your organization's tender")
+    # Bidder: must be APPROVED
+    if current_user.role == "bidder" and t.status != "APPROVED":
+        raise HTTPException(403, "Tender not open for bidding")
     return _tender_dict(t, db)
 
 
-@router.delete("/{tender_id}")
-def delete_tender(tender_id: int, db: Session = Depends(get_db)):
+@router.get("/{tender_id}", dependencies=[Depends(get_current_user)])
+def get_tender(tender_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return _get_tender_internal(tender_id, db, current_user)
+
+
+@router.delete("/{tender_id}", dependencies=[Depends(require_role("officer", "admin"))])
+def delete_tender(tender_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Delete a tender and everything under it: requirements, drafted rules,
     bids, uploaded documents (rows AND files), results, decisions."""
     t = db.get(Tender, tender_id)
     if not t:
         raise HTTPException(404, "tender not found")
+    if current_user.role != "admin" and t.organization_id != current_user.organization_id:
+        raise HTTPException(403, "Not your organization's tender")
     title = t.title
     bids = db.query(Bid).filter_by(tender_id=tender_id).all()
     removed_files = 0
@@ -139,13 +166,17 @@ def delete_tender(tender_id: int, db: Session = Depends(get_db)):
     return {"ok": True, "deleted_bids": len(bids), "deleted_files": removed_files}
 
 
-@router.get("/{tender_id}/extracted-text")
-def tender_extracted_text(tender_id: int, db: Session = Depends(get_db)):
+@router.get("/{tender_id}/extracted-text", dependencies=[Depends(get_current_user)])
+def tender_extracted_text(tender_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Raw text the system read from the tender document, as inspectable JSON —
     so anyone can match what the AI saw against the real document."""
     t = db.get(Tender, tender_id)
     if not t:
         raise HTTPException(404, "tender not found")
+    if current_user.role == "officer" and t.organization_id != current_user.organization_id:
+        raise HTTPException(403, "Not your organization's tender")
+    if current_user.role == "bidder" and t.status != "APPROVED":
+        raise HTTPException(403, "Tender not open for bidding")
     return {
         "tender_id": t.id,
         "title": t.title,
@@ -158,11 +189,15 @@ def tender_extracted_text(tender_id: int, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/{tender_id}/file")
-def tender_file(tender_id: int, db: Session = Depends(get_db)):
+@router.get("/{tender_id}/file", dependencies=[Depends(get_current_user)])
+def tender_file(tender_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     t = db.get(Tender, tender_id)
     if not t or not t.file_path:
         raise HTTPException(404, "tender document not found")
+    if current_user.role == "officer" and t.organization_id != current_user.organization_id:
+        raise HTTPException(403, "Not your organization's tender")
+    if current_user.role == "bidder" and t.status != "APPROVED":
+        raise HTTPException(403, "Tender not open for bidding")
     return FileResponse(t.file_path, filename=t.file_path.split("/")[-1],
                         content_disposition_type="inline")
 
@@ -173,11 +208,13 @@ class ReqAdd(BaseModel):
     priority: str = "MANDATORY"
 
 
-@router.post("/{tender_id}/requirements")
-def add_requirement(tender_id: int, body: ReqAdd, db: Session = Depends(get_db)):
+@router.post("/{tender_id}/requirements", dependencies=[Depends(require_role("officer", "admin"))])
+def add_requirement(tender_id: int, body: ReqAdd, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     t = db.get(Tender, tender_id)
     if not t:
         raise HTTPException(404, "tender not found")
+    if current_user.role != "admin" and t.organization_id != current_user.organization_id:
+        raise HTTPException(403, "Not your organization's tender")
     text = body.text.strip()
     if len(text) < 10:
         raise HTTPException(422, "requirement text too short")
@@ -213,11 +250,14 @@ class ReqUpdate(BaseModel):
     priority: str | None = None
 
 
-@router.put("/{tender_id}/requirements/{req_id}")
-def update_requirement(tender_id: int, req_id: int, body: ReqUpdate, db: Session = Depends(get_db)):
+@router.put("/{tender_id}/requirements/{req_id}", dependencies=[Depends(require_role("officer", "admin"))])
+def update_requirement(tender_id: int, req_id: int, body: ReqUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     r = db.get(Requirement, req_id)
     if not r or r.tender_id != tender_id:
         raise HTTPException(404, "requirement not found")
+    t = db.get(Tender, tender_id)
+    if current_user.role != "admin" and t.organization_id != current_user.organization_id:
+        raise HTTPException(403, "Not your organization's tender")
     for k, v in body.model_dump(exclude_none=True).items():
         setattr(r, k, v)
     db.commit()
@@ -225,11 +265,14 @@ def update_requirement(tender_id: int, req_id: int, body: ReqUpdate, db: Session
     return {"ok": True}
 
 
-@router.delete("/{tender_id}/requirements/{req_id}")
-def delete_requirement(tender_id: int, req_id: int, db: Session = Depends(get_db)):
+@router.delete("/{tender_id}/requirements/{req_id}", dependencies=[Depends(require_role("officer", "admin"))])
+def delete_requirement(tender_id: int, req_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     r = db.get(Requirement, req_id)
     if not r or r.tender_id != tender_id:
         raise HTTPException(404, "requirement not found")
+    t = db.get(Tender, tender_id)
+    if current_user.role != "admin" and t.organization_id != current_user.organization_id:
+        raise HTTPException(403, "Not your organization's tender")
     for dr in db.query(DynamicRule).filter_by(requirement_id=req_id).all():
         db.delete(dr)
     db.delete(r)
@@ -238,11 +281,13 @@ def delete_requirement(tender_id: int, req_id: int, db: Session = Depends(get_db
     return {"ok": True}
 
 
-@router.post("/{tender_id}/approve")
-def approve_tender(tender_id: int, db: Session = Depends(get_db)):
+@router.post("/{tender_id}/approve", dependencies=[Depends(require_role("officer", "admin"))])
+def approve_tender(tender_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     t = db.get(Tender, tender_id)
     if not t:
         raise HTTPException(404, "tender not found")
+    if current_user.role != "admin" and t.organization_id != current_user.organization_id:
+        raise HTTPException(403, "Not your organization's tender")
     for r in db.query(Requirement).filter_by(tender_id=tender_id).all():
         r.approved = 1
     for dr in db.query(DynamicRule).filter_by(tender_id=tender_id).all():
@@ -268,7 +313,7 @@ def _tender_dict(t: Tender, db: Session):
                 "legal_basis": d.legal_basis, "generated_code": d.generated_code,
                 "exemptions": d.exemptions or []}
     return {
-        "id": t.id, "title": t.title, "organization": t.organization, "ref_no": t.ref_no,
+        "id": t.id, "title": t.title, "organization": t.org_name, "ref_no": t.ref_no,
         "status": t.status, "ruleset_version": t.ruleset_version, "created_at": t.created_at,
         "requirements": [
             {"id": r.id, "text": r.text, "type": r.type, "priority": r.priority,

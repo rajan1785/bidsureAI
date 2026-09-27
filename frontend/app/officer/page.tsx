@@ -50,20 +50,26 @@ export default function OfficerDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-bold">Officer Dashboard</h1>
+    <div className="space-y-6 pb-8">
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">Procurement workspace</p><h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Officer Dashboard</h1><p className="mt-1 text-sm text-slate-500">Manage tender reviews and evaluate submitted bids.</p></div>
         <Link href="/officer/tenders/new">
-          <Button>+ New Tender</Button>
+          <Button className="h-10 gap-2 bg-blue-700 px-4 hover:bg-blue-800">+ New Tender</Button>
         </Link>
       </div>
 
-      {error && <p className="text-sm text-red-600">Backend not reachable: {error}</p>}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-medium text-slate-500">All tenders</p><p className="mt-1 text-2xl font-semibold text-slate-900">{tenders.length}</p></div>
+        <div className="rounded-xl border border-amber-200/80 bg-amber-50/60 p-4 shadow-sm"><p className="text-xs font-medium text-amber-800">Needs review</p><p className="mt-1 text-2xl font-semibold text-amber-900">{tenders.filter((t) => t.status === "REVIEW").length}</p></div>
+        <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/60 p-4 shadow-sm"><p className="text-xs font-medium text-emerald-800">Approved and open</p><p className="mt-1 text-2xl font-semibold text-emerald-900">{tenders.filter((t) => t.status === "APPROVED").length}</p></div>
+      </div>
 
-      <Card>
+      {error && <p className="text-sm text-red-600">Unable to load dashboard data: {error}</p>}
+
+      <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center justify-between">
-            <span>Tenders ({tenders.length})</span>
+            <span className="font-semibold">Tender register</span>
             {tenders.length > 4 && (
               <Input placeholder="Search tenders…" value={filter}
                 onChange={(e) => setFilter(e.target.value)} className="h-8 w-56" />
@@ -79,8 +85,8 @@ export default function OfficerDashboard() {
                 <div key={t.id} role="button" tabIndex={0}
                   onClick={() => setSelected(t.id)}
                   onKeyDown={(e) => e.key === "Enter" && setSelected(t.id)}
-                  className={`w-full text-left px-4 py-2.5 flex items-center gap-3 flex-wrap transition cursor-pointer
-                    ${selected === t.id ? "bg-blue-50 border-l-2 border-blue-600" : "hover:bg-slate-50"}`}>
+                  className={`w-full text-left px-4 py-3 flex items-center gap-3 flex-wrap transition cursor-pointer
+                    ${selected === t.id ? "bg-blue-50/80 border-l-[3px] border-blue-600" : "hover:bg-slate-50"}`}>
                   <span className="font-medium text-sm flex-1 min-w-48">{t.title}</span>
                   <span className="text-xs text-slate-500 hidden sm:inline">{t.organization}</span>
                   <Badge variant={t.status === "APPROVED" ? "default" : "secondary"}>{t.status}</Badge>
@@ -111,9 +117,10 @@ export default function OfficerDashboard() {
       </Card>
 
       {selected !== null && (
-        <Card>
+        <Card className="border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Bidder Comparison</CardTitle>
+            <CardTitle className="font-semibold">Bidder comparison</CardTitle>
+            <p className="text-sm text-slate-500">{tenders.find((t) => t.id === selected)?.title ?? "Selected tender"}</p>
           </CardHeader>
           <CardContent>
             <Table>

@@ -1,7 +1,18 @@
 export const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
 
 async function req(path: string, init?: RequestInit) {
-  const r = await fetch(`${API}${path}`, init);
+  const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+  const headers = new Headers(init?.headers);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const r = await fetch(`${API}${path}`, { ...init, headers });
+  if (r.status === 401) {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("access_token");
+      window.location.href = "/login";
+    }
+    throw new Error("Session expired");
+  }
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
   return r.json();
 }
@@ -74,7 +85,37 @@ export type AuditEvent = {
   id: number; actor: string; action: string; entity: string; details: string; timestamp: string;
 };
 
+export type User = {
+  id: number;
+  email: string;
+  full_name: string;
+  role: "bidder" | "officer" | "admin";
+  organization_id: number;
+  is_active: number;
+  created_at: string;
+};
+
+export type RegisterData = {
+  email: string;
+  password: string;
+  full_name: string;
+  role: "bidder" | "officer";
+  organization_name: string;
+};
+
 export const api = {
+  // Auth
+  login: (email: string, password: string) => req("/auth/login", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password })
+  }),
+  register: (data: RegisterData) => req("/auth/register", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  }),
+  getMe: (): Promise<User> => req("/auth/me"),
+
+  // Tenders
   listTenders: (): Promise<Tender[]> => req("/tenders"),
   getTender: (id: number): Promise<Tender> => req(`/tenders/${id}`),
   createTender: (form: FormData): Promise<Tender> => req("/tenders", { method: "POST", body: form }),
@@ -93,9 +134,14 @@ export const api = {
   tenderFileUrl: (tenderId: number) => `${API}/tenders/${tenderId}/file`,
   tenderTextUrl: (tenderId: number) => `${API}/tenders/${tenderId}/extracted-text`,
 
+  // Bidders
   createBidder: (body: Record<string, string>) =>
     req("/bidders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
-  createBid: (tender_id: number, bidder_id: number): Promise<{ id: number }> =>
+  listBidders: () => req("/bidders"),
+
+  // Bids
+  myBids: (): Promise<{ id: number; tender_id: number; tender_title: string; pipeline_status: string; submitted_at: string; documents: string[] }[]> => req("/bids/mine"),
+  createBid: (tender_id: number, bidder_id: number): Promise<{ id: number; pipeline_status: string; existing?: boolean }> =>
     req("/bids", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tender_id, bidder_id }) }),
   uploadDocument: (bidId: number, form: FormData) =>
     req(`/bids/${bidId}/documents`, { method: "POST", body: form }),
@@ -108,6 +154,14 @@ export const api = {
     }),
   comparison: (tenderId: number): Promise<ComparisonRow[]> => req(`/tenders/${tenderId}/comparison`),
   audit: (): Promise<AuditEvent[]> => req("/audit"),
+
+  // Admin
+  listUsers: () => req("/auth/admin/users"),
+  listPendingUsers: () => req("/auth/admin/users/pending"),
+  approveUser: (userId: number, isActive: boolean) =>
+    req(`/auth/admin/users/${userId}/approve`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: userId, is_active: isActive }),
+    }),
 };
 
 export const statusColor: Record<string, string> = {
