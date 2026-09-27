@@ -27,6 +27,14 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+    role: str | None = None
+
+    @field_validator("role")
+    @classmethod
+    def validate_login_role(cls, v: str | None) -> str | None:
+        if v is not None and v not in ("bidder", "officer", "admin"):
+            raise ValueError("Role must be 'bidder', 'officer', or 'admin'")
+        return v
 
 
 class Token(BaseModel):

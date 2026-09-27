@@ -61,6 +61,8 @@ def login(form_data: schemas.UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter_by(email=form_data.email).first()
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect email or password")
+    if form_data.role and user.role != form_data.role:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, f"This account is registered as {user.role}. Select that role to continue.")
     if not user.is_active:
         raise HTTPException(403, "Account pending admin approval")
 

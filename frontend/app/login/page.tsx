@@ -18,6 +18,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"bidder" | "officer" | "admin">("bidder");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -26,11 +27,11 @@ export default function LoginPage() {
     setError("");
     setBusy(true);
     try {
-      const signedInUser = await login(email, password);
-      const roleHome = signedInUser.role === "bidder" ? "/bidder" : "/officer";
+      const signedInUser = await login(email, password, role);
+      const roleHome = signedInUser.role === "bidder" ? "/bidder" : signedInUser.role === "admin" ? "/admin" : "/officer";
       // A stale or generic /officer redirect must never send a bidder into
       // the officer dashboard and trigger role-protected comparison requests.
-      router.push(signedInUser.role === "bidder" ? roleHome : requestedRedirect || roleHome);
+      router.push(requestedRedirect && signedInUser.role !== "bidder" ? requestedRedirect : roleHome);
       router.refresh();
     } catch (err) {
       setError(String(err));
@@ -40,32 +41,48 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto space-y-6 mt-16">
+    <div className="mx-auto mt-12 max-w-md space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-bold">BidSure AI</h1>
-        <p className="text-slate-500 mt-1">Sign in to continue</p>
+        <span className="mx-auto mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-700 text-lg font-bold text-white shadow-sm shadow-blue-900/20">B</span>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Welcome to BidSure AI</h1>
+        <p className="mt-1 text-sm text-slate-500">Sign in to your procurement workspace</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Login</CardTitle>
+      <Card className="border-slate-200 shadow-md shadow-slate-900/5">
+        <CardHeader className="border-b border-slate-100 pb-4">
+          <CardTitle className="text-base font-semibold">Sign in</CardTitle>
+          <p className="text-sm text-slate-500">Use your registered email and password.</p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-5">
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-1.5">
+              <Label htmlFor="role">Sign in as</Label>
+              <Select value={role} onValueChange={(value) => value && setRole(value as typeof role)}>
+                <SelectTrigger id="role" className="h-10 w-full rounded-lg bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bidder">Bidder / Supplier</SelectItem>
+                  <SelectItem value="officer">Procurement Officer</SelectItem>
+                  <SelectItem value="admin">Administrator</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">Choose the role assigned to your account.</p>
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="officer@org.gov.in" />
+              <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="name@organization.com" className="h-10 rounded-lg bg-white" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-10 rounded-lg bg-white" />
             </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit" disabled={busy} className="w-full">
-              {busy ? "Signing in…" : "Sign In"}
+            {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error.replace(/^Error: /, "")}</p>}
+            <Button type="submit" disabled={busy} className="h-10 w-full bg-blue-700 font-semibold hover:bg-blue-800">
+              {busy ? "Signing in…" : `Continue as ${role === "officer" ? "Officer" : role === "admin" ? "Admin" : "Bidder"}`}
             </Button>
           </form>
-          <p className="text-center text-sm text-slate-500 mt-4">
+          <p className="mt-5 border-t border-slate-100 pt-4 text-center text-sm text-slate-500">
             Don't have an account? <Link href="/register" className="text-blue-700 hover:underline">Register</Link>
           </p>
         </CardContent>

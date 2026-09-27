@@ -105,9 +105,9 @@ export type RegisterData = {
 
 export const api = {
   // Auth
-  login: (email: string, password: string) => req("/auth/login", {
+  login: (email: string, password: string, role: User["role"]) => req("/auth/login", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email, password, role })
   }),
   register: (data: RegisterData) => req("/auth/register", {
     method: "POST", headers: { "Content-Type": "application/json" },

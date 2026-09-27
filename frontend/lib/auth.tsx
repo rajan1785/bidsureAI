@@ -5,7 +5,7 @@ import { api, User } from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<User>;
+  login: (email: string, password: string, role: User["role"]) => Promise<User>;
   register: (data: { email: string; password: string; full_name: string; role: "bidder" | "officer"; organization_name: string }) => Promise<void>;
   logout: () => void;
   loading: boolean;
@@ -29,8 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const res = await api.login(email, password);
+  const login = async (email: string, password: string, role: User["role"]) => {
+    const res = await api.login(email, password, role);
     localStorage.setItem("access_token", res.access_token);
     const userData = await api.getMe();
     setUser(userData);
