@@ -13,6 +13,7 @@ export default function NewTender() {
   const [title, setTitle] = useState("");
   const [organization, setOrganization] = useState("");
   const [refNo, setRefNo] = useState("");
+  const [deadline, setDeadline] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -27,6 +28,7 @@ export default function NewTender() {
       form.append("title", title);
       form.append("organization", organization);
       form.append("ref_no", refNo);
+      form.append("deadline", new Date(deadline).toISOString());
       form.append("file", file);
       const tender = await api.createTender(form);
       router.push(`/officer/tenders/${tender.id}`);
@@ -62,6 +64,13 @@ export default function NewTender() {
               <Label htmlFor="ref">Reference No. <span className="text-slate-400 font-normal">(optional — auto-detected)</span></Label>
               <Input id="ref" value={refNo} onChange={(e) => setRefNo(e.target.value)}
                 placeholder="GB-SDC/074/Security Services/2024-25" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="deadline">Bid submission deadline <span className="text-red-600">*</span></Label>
+              <Input id="deadline" type="datetime-local" value={deadline}
+                min={new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 16)}
+                onChange={(e) => setDeadline(e.target.value)} required />
+              <p className="text-xs text-slate-500">Bidders can submit or update their application until this time, shown in your local timezone.</p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="file">Tender Document (PDF)</Label>

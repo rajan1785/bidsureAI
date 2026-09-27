@@ -8,6 +8,7 @@ A/B/C story without manual reseeding.
 import os
 import threading
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 REPO = Path(__file__).parents[2]
@@ -93,6 +94,7 @@ def _seed(app):
             "title": "Security Services Tender — University of Delhi, South Campus",
             "organization": "University of Delhi",
             "ref_no": "GB-SDC/074/Security Services/2024-25",
+            "deadline": (datetime.now(timezone.utc) + timedelta(days=365)).isoformat(),
         }, files={"file": (tender_pdf.name, f, "application/pdf")},
             headers=auth_headers(officer_token))
     tender = r.json()

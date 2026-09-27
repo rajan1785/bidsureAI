@@ -30,3 +30,15 @@ def init_db():
     from app import models  # noqa: F401
 
     Base.metadata.create_all(engine)
+    # create_all does not add columns to an existing SQLite database.
+    # Add the deadline column in place so existing installations keep working.
+    if engine.dialect.name == "sqlite":
+        from sqlalchemy import inspect, text
+
+        with engine.begin() as connection:
+            columns = {column["name"] for column in inspect(connection).get_columns("tenders")}
+            if "deadline" not in columns:
+                connection.execute(text("ALTER TABLE tenders ADD COLUMN deadline VARCHAR NOT NULL DEFAULT ''"))
+            audit_columns = {column["name"] for column in inspect(connection).get_columns("audit_events")}
+            if "organization_id" not in audit_columns:
+                connection.execute(text("ALTER TABLE audit_events ADD COLUMN organization_id INTEGER REFERENCES organizations(id)"))

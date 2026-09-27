@@ -69,6 +69,7 @@ export default function TenderReview({ params }: { params: Promise<{ id: string 
         <h1 className="text-2xl font-bold">{tender.title}</h1>
         <p className="text-slate-500 text-sm mt-1 flex items-center gap-2 flex-wrap">
           {tender.organization} · <Badge variant="secondary">{tender.status}</Badge>
+          {tender.deadline && <span className="text-slate-600">Bid deadline: {new Date(tender.deadline).toLocaleString()}</span>}
           <a href={api.tenderFileUrl(tenderId)} target="_blank" rel="noreferrer"
              className="text-blue-700 hover:underline">
             view tender document ↗

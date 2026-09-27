@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Trash2 } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -17,6 +18,8 @@ export default function OfficerDashboard() {
   const [rows, setRows] = useState<ComparisonRow[]>([]);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
+  const [deletingTender, setDeletingTender] = useState<number | null>(null);
+  const [deletingBid, setDeletingBid] = useState<number | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -40,13 +43,37 @@ export default function OfficerDashboard() {
 
   async function removeTender(e: React.MouseEvent, id: number, title: string) {
     e.stopPropagation();
-    if (!window.confirm(`Delete "${title}" and ALL its bids and documents? This cannot be undone.`)) return;
-    await api.deleteTender(id);
-    if (selected === id) {
-      setSelected(null);
-      setRows([]);
+    if (!window.confirm(`Delete "${title}" and all its bids and documents? This cannot be undone.`)) return;
+    setDeletingTender(id);
+    setError("");
+    try {
+      await api.deleteTender(id);
+      if (selected === id) {
+        setSelected(null);
+        setRows([]);
+      }
+      await refresh();
+    } catch (e) {
+      setError(`Could not delete tender: ${String(e)}`);
+    } finally {
+      setDeletingTender(null);
     }
-    refresh();
+  }
+
+  async function removeBid(id: number, bidder: string) {
+    if (!window.confirm(`Delete ${bidder}'s bid and its uploaded documents? The audit trail will record this action.`)) return;
+    setDeletingBid(id);
+    setError("");
+    try {
+      await api.deleteBid(id);
+      setRows((current) => current.filter((row) => row.bid_id !== id));
+      const refreshed = await api.comparison(selected!);
+      setRows(refreshed);
+    } catch (e) {
+      setError(`Could not delete bid: ${String(e)}`);
+    } finally {
+      setDeletingBid(null);
+    }
   }
 
   return (
@@ -91,6 +118,7 @@ export default function OfficerDashboard() {
                   <span className="text-xs text-slate-500 hidden sm:inline">{t.organization}</span>
                   <Badge variant={t.status === "APPROVED" ? "default" : "secondary"}>{t.status}</Badge>
                   <span className="text-xs text-slate-500">{t.requirements.length} reqs</span>
+                  {t.deadline && <span className="text-xs text-slate-500">Closes {new Date(t.deadline).toLocaleDateString()}</span>}
                   {t.status === "REVIEW" ? (
                     <Link href={`/officer/tenders/${t.id}`} onClick={(e) => e.stopPropagation()}
                       className="text-blue-700 text-xs font-medium">
@@ -102,10 +130,10 @@ export default function OfficerDashboard() {
                       view
                     </Link>
                   )}
-                  <button onClick={(e) => removeTender(e, t.id, t.title)}
+                  <button onClick={(e) => removeTender(e, t.id, t.title)} disabled={deletingTender === t.id}
                     title="Delete tender and all its bids"
-                    className="text-red-500 hover:text-red-700 text-xs px-1">
-                    🗑
+                    className="rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50">
+                    {deletingTender === t.id ? "Deleting…" : "Delete"}
                   </button>
                 </div>
               ))}
@@ -164,9 +192,14 @@ export default function OfficerDashboard() {
                       {r.decision ? <Badge>{r.decision}</Badge> : <span className="text-slate-400 text-sm">pending</span>}
                     </TableCell>
                     <TableCell>
-                      <Link href={`/officer/bids/${r.bid_id}`} className="text-blue-700 text-sm font-medium">
-                        Inspect →
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        <Link href={`/officer/bids/${r.bid_id}`} className="text-blue-700 text-sm font-medium">Inspect →</Link>
+                        <button type="button" title="Delete bid and its documents" aria-label={`Delete ${r.bidder}'s bid`}
+                          disabled={deletingBid === r.bid_id} onClick={() => removeBid(r.bid_id, r.bidder)}
+                          className="rounded-md p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50">
+                          {deletingBid === r.bid_id ? <span className="text-xs">…</span> : <Trash2 size={15} />}
+                        </button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

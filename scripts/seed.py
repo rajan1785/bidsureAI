@@ -29,6 +29,7 @@ import shutil
 import sqlite3
 import sys
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import requests
 
@@ -477,6 +478,7 @@ def seed_tender():
                     "GB-SDC/074/"
                     "Security Services/2024-25"
                 ),
+                "deadline": (datetime.now(timezone.utc) + timedelta(days=365)).isoformat(),
             },
             files={
                 "file": (

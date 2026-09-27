@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from uuid import uuid4
 
 from sqlalchemy import JSON, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -14,7 +15,9 @@ class Organization(Base):
     __tablename__ = "organizations"
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String, unique=True)
-    gem_org_id: Mapped[str] = mapped_column(String, default="", unique=True)
+    # Internal placeholder IDs keep the unique column valid until a real GeM
+    # organization ID is supplied by an authorized integration.
+    gem_org_id: Mapped[str] = mapped_column(String, default=lambda: f"LOCAL-{uuid4().hex.upper()}", unique=True)
     is_active: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[str] = mapped_column(String, default=utcnow)
 
@@ -55,6 +58,8 @@ class Tender(Base):
     ocr_confidence: Mapped[float] = mapped_column(Float, default=0.0)
     organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), default=1)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
+    # Stored as an ISO-8601 UTC timestamp; blank keeps legacy tenders open.
+    deadline: Mapped[str] = mapped_column(String, default="")
 
     organization: Mapped["Organization"] = relationship(back_populates="tenders")
     requirements: Mapped[list["Requirement"]] = relationship(back_populates="tender")
@@ -220,3 +225,4 @@ class AuditEvent(Base):
     entity: Mapped[str] = mapped_column(String)
     details: Mapped[str] = mapped_column(Text, default="")
     timestamp: Mapped[str] = mapped_column(String, default=utcnow)
+    organization_id: Mapped[int | None] = mapped_column(ForeignKey("organizations.id"), nullable=True, index=True)

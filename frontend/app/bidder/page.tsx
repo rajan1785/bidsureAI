@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, ArrowLeft, ArrowRight, Building2, CheckCircle2, Clock3, FileCheck2, FileText, LoaderCircle, ShieldCheck, UploadCloud } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Building2, CheckCircle2, Clock3, FileCheck2, FileText, LoaderCircle, ShieldCheck, Trash2, UploadCloud } from "lucide-react";
 
 const STAGES = [
   ["OCR", "Reading documents (OCR)"],
@@ -30,7 +30,11 @@ export default function BidderPortal() {
   const [bidId, setBidId] = useState<number | null>(null);
   const [uploads, setUploads] = useState<string[]>([]);
   const [pipeline, setPipeline] = useState("");
-  const [myBids, setMyBids] = useState<{ id: number; tender_id: number; tender_title: string; pipeline_status: string; submitted_at: string; documents: string[] }[]>([]);
+  const [myBids, setMyBids] = useState<{ id: number; tender_id: number; tender_title: string; deadline: string; pipeline_status: string; submitted_at: string; documents: { id: number; filename: string }[] }[]>([]);
+  const [documentIds, setDocumentIds] = useState<number[]>([]);
+  const [editingSubmitted, setEditingSubmitted] = useState(false);
+  const [editingExisting, setEditingExisting] = useState(false);
+  const [changed, setChanged] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -71,12 +75,19 @@ export default function BidderPortal() {
       const bidder = await api.createBidder(form);
       const bid = await api.createBid(tenderId!, bidder.id);
       setBidId(bid.id);
+      setDocumentIds([]);
+      setEditingSubmitted(false);
+      setEditingExisting(false);
+      setChanged(false);
       if (bid.pipeline_status !== "DRAFT") {
         setPipeline(bid.pipeline_status);
         setStep(4);
       } else {
         const existing = myBids.find((b) => b.id === bid.id);
-        if (existing) setUploads(existing.documents);
+        if (existing) {
+          setUploads(existing.documents.map((d) => d.filename));
+          setDocumentIds(existing.documents.map((d) => d.id));
+        }
         setStep(3);
       }
     } catch (err) { setError(String(err)); }
@@ -91,12 +102,43 @@ export default function BidderPortal() {
       for (const f of Array.from(files)) {
         const fd = new FormData();
         fd.append("file", f);
-        await api.uploadDocument(bidId, fd);
-        setUploads((u) => [...u, f.name]);
+        const added = await api.uploadDocument(bidId, fd);
+        setUploads((u) => [...u, added.filename]);
+        setDocumentIds((ids) => [...ids, added.id]);
+        setChanged(true);
+        setPipeline("DRAFT");
       }
       if (fileRef.current) fileRef.current.value = "";
+      api.myBids().then(setMyBids).catch(() => {});
     } catch (err) { setError(String(err)); }
     finally { setBusy(false); }
+  }
+
+  async function removeDocument(index: number) {
+    const docId = documentIds[index];
+    if (!bidId || !docId) return;
+    setBusy(true); setError("");
+    try {
+      await api.deleteBidDocument(bidId, docId);
+      setUploads((files) => files.filter((_, i) => i !== index));
+      setDocumentIds((ids) => ids.filter((_, i) => i !== index));
+      setChanged(true);
+      setPipeline("DRAFT");
+      api.myBids().then(setMyBids).catch(() => {});
+    } catch (err) { setError(String(err)); }
+    finally { setBusy(false); }
+  }
+
+  function editApplication(application: (typeof myBids)[number]) {
+    setBidId(application.id);
+    setTenderId(application.tender_id);
+    setPipeline(application.pipeline_status);
+    setUploads(application.documents.map((d) => d.filename));
+    setDocumentIds(application.documents.map((d) => d.id));
+    setEditingSubmitted(Boolean(application.submitted_at));
+    setEditingExisting(true);
+    setChanged(false);
+    setStep(3);
   }
 
   async function submit() {
@@ -105,7 +147,11 @@ export default function BidderPortal() {
     try {
       await api.submitBid(bidId);
       setPipeline("QUEUED");
+      setEditingSubmitted(false);
+      setEditingExisting(false);
+      setChanged(false);
       setStep(4);
+      api.myBids().then(setMyBids).catch(() => {});
     } catch (err) { setError(String(err)); }
     finally { setBusy(false); }
   }
@@ -167,11 +213,14 @@ export default function BidderPortal() {
             {myBids.map((b) => <div key={b.id} className="flex flex-col justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-blue-200 hover:shadow-sm sm:flex-row sm:items-center">
               <div className="flex min-w-0 items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><Building2 size={19} /></span>
-                <div className="min-w-0"><p className="font-semibold text-slate-900">{b.tender_title}</p><p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500"><FileText size={13} />{b.documents.length} supporting documents <span className="text-slate-300">·</span> Application #{b.id}</p></div>
+                <div className="min-w-0"><p className="font-semibold text-slate-900">{b.tender_title}</p><p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-500"><FileText size={13} />{b.documents.length} supporting documents <span className="text-slate-300">·</span> Application #{b.id}{b.deadline && <><span className="text-slate-300">·</span><Clock3 size={13} />Closes {new Date(b.deadline).toLocaleString()}</>}</p></div>
               </div>
-              <Badge variant="outline" className={`w-fit gap-1.5 rounded-full px-3 py-1 ${b.pipeline_status === "DONE" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : b.pipeline_status === "ERROR" ? "border-red-200 bg-red-50 text-red-700" : "border-blue-200 bg-blue-50 text-blue-700"}`}>
-                {b.pipeline_status === "DONE" ? <CheckCircle2 size={13} /> : <Clock3 size={13} />}{b.pipeline_status === "DONE" ? "Verified" : b.pipeline_status.replaceAll("_", " ")}
-              </Badge>
+              <div className="flex shrink-0 items-center gap-2">
+                <Badge variant="outline" className={`w-fit gap-1.5 rounded-full px-3 py-1 ${b.pipeline_status === "DONE" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : b.pipeline_status === "ERROR" ? "border-red-200 bg-red-50 text-red-700" : "border-blue-200 bg-blue-50 text-blue-700"}`}>
+                  {b.pipeline_status === "DONE" ? <CheckCircle2 size={13} /> : <Clock3 size={13} />}{b.pipeline_status === "DONE" ? "Verified" : b.pipeline_status.replaceAll("_", " ")}
+                </Badge>
+                {(!b.deadline || new Date(b.deadline).getTime() > Date.now()) && ["DONE", "ERROR", "DRAFT"].includes(b.pipeline_status) && <Button size="sm" variant="outline" onClick={() => editApplication(b)}>Edit application</Button>}
+              </div>
             </div>)}
             {loading && <div className="flex items-center gap-2 py-4 text-sm text-slate-500"><LoaderCircle size={16} className="animate-spin" />Loading your applications…</div>}
           </CardContent>
@@ -189,7 +238,7 @@ export default function BidderPortal() {
                 className={`group w-full rounded-xl border p-4 text-left transition ${myBids.some((b) => b.tender_id === t.id) ? "cursor-not-allowed border-slate-200 bg-slate-50/70" : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500"}`}>
                 <div className="flex items-center gap-3">
                   <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${myBids.some((b) => b.tender_id === t.id) ? "bg-slate-100 text-slate-400" : "bg-blue-50 text-blue-700 group-hover:bg-blue-100"}`}><Building2 size={19} /></span>
-                  <span className="min-w-0 flex-1"><span className="block font-semibold text-slate-900">{t.title}</span><span className="mt-1 block text-xs text-slate-500">{t.organization} <span className="mx-1 text-slate-300">·</span> {t.requirements.length} compliance requirements</span></span>
+                  <span className="min-w-0 flex-1"><span className="block font-semibold text-slate-900">{t.title}</span><span className="mt-1 block text-xs text-slate-500">{t.organization} <span className="mx-1 text-slate-300">·</span> {t.requirements.length} compliance requirements <span className="mx-1 text-slate-300">·</span> {t.deadline ? `Closes ${new Date(t.deadline).toLocaleString()}` : "No closing time set"}</span></span>
                   {myBids.some((b) => b.tender_id === t.id) ? <Badge variant="outline" className="gap-1 rounded-full border-emerald-200 bg-emerald-50 text-emerald-700"><CheckCircle2 size={13} />Applied</Badge> : <ArrowRight size={18} className="text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-700" />}
                 </div>
               </button>
@@ -237,8 +286,8 @@ export default function BidderPortal() {
       {step === 3 && (
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100 pb-4">
-            <CardTitle className="text-base font-semibold">Supporting documents</CardTitle>
-            <p className="text-sm text-slate-500">Upload readable PDF, Word, image or text files</p>
+            <CardTitle className="text-base font-semibold">{editingSubmitted ? "Update your application" : "Supporting documents"}</CardTitle>
+            <p className="text-sm text-slate-500">{editingSubmitted ? "Add or remove documents, then resubmit before the tender deadline." : "Upload readable PDF, Word, image or text files."}</p>
           </CardHeader>
           <CardContent className="space-y-5 pt-5">
             <div className="rounded-xl border border-dashed border-blue-200 bg-blue-50/50 p-4 sm:p-5">
@@ -254,14 +303,15 @@ export default function BidderPortal() {
                 {uploads.map((u, i) => (
                   <li key={`${u}-${i}`} className="flex min-w-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm">
                     <FileCheck2 size={17} className="shrink-0 text-emerald-600" /><span className="min-w-0 flex-1 truncate text-slate-700">{u}</span><CheckCircle2 size={14} className="shrink-0 text-emerald-600" />
+                    <Button type="button" size="icon-sm" variant="ghost" title={`Remove ${u}`} disabled={busy} onClick={() => removeDocument(i)} className="text-slate-400 hover:text-red-600"><Trash2 size={15} /></Button>
                   </li>
                 ))}
               </ul>
             )}
             <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-between sm:items-center">
-              <Button variant="ghost" onClick={() => setStep(2)} disabled={busy}><ArrowLeft size={16} />Back</Button>
-              <Button className="bg-blue-700 px-5 hover:bg-blue-800" disabled={uploads.length === 0 || busy} onClick={submit}>
-                Submit for verification<ArrowRight size={16} />
+              <Button variant="ghost" onClick={() => setStep(editingExisting ? 1 : 2)} disabled={busy}><ArrowLeft size={16} />{editingExisting ? "Back to applications" : "Back"}</Button>
+              <Button className="bg-blue-700 px-5 hover:bg-blue-800" disabled={uploads.length === 0 || busy || (editingSubmitted && !changed)} onClick={submit}>
+                {busy ? <><LoaderCircle size={16} className="animate-spin" />Submitting…</> : editingSubmitted ? <>Save changes & resubmit<ArrowRight size={16} /></> : <>Submit for verification<ArrowRight size={16} /> </>}
               </Button>
             </div>
           </CardContent>

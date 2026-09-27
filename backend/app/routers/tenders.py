@@ -1,5 +1,6 @@
 import shutil
 from pathlib import Path
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
@@ -27,10 +28,20 @@ def create_tender(
     title: str = Form(""),
     organization: str = Form(""),
     ref_no: str = Form(""),
+    deadline: str = Form(...),
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    try:
+        deadline_dt = datetime.fromisoformat(deadline.replace("Z", "+00:00"))
+        if deadline_dt.tzinfo is None:
+            deadline_dt = deadline_dt.replace(tzinfo=timezone.utc)
+        deadline_dt = deadline_dt.astimezone(timezone.utc)
+    except ValueError:
+        raise HTTPException(422, "Invalid bid deadline")
+    if deadline_dt <= datetime.now(timezone.utc):
+        raise HTTPException(422, "Bid deadline must be in the future")
     tender = Tender(
         title=title,
         org_name=organization,
@@ -38,6 +49,7 @@ def create_tender(
         status="EXTRACTING",
         organization_id=current_user.organization_id,
         created_by=current_user.id,
+        deadline=deadline_dt.isoformat(),
     )
     db.add(tender)
     db.commit()
@@ -101,8 +113,9 @@ def list_tenders(current_user: User = Depends(get_current_user), db: Session = D
     if current_user.role == "officer":
         tenders = db.query(Tender).filter_by(organization_id=current_user.organization_id).all()
     else:
-        # Bidder sees only APPROVED tenders
-        tenders = db.query(Tender).filter_by(status="APPROVED").all()
+        # Bidder sees only approved tenders that are still open for submissions.
+        tenders = [t for t in db.query(Tender).filter_by(status="APPROVED").all()
+                   if not t.deadline or datetime.fromisoformat(t.deadline.replace("Z", "+00:00")) > datetime.now(timezone.utc)]
     return [_tender_dict(t, db) for t in tenders]
 
 
@@ -135,6 +148,7 @@ def delete_tender(tender_id: int, current_user: User = Depends(get_current_user)
     if current_user.role != "admin" and t.organization_id != current_user.organization_id:
         raise HTTPException(403, "Not your organization's tender")
     title = t.title
+    tender_organization_id = t.organization_id
     bids = db.query(Bid).filter_by(tender_id=tender_id).all()
     removed_files = 0
     for bid in bids:
@@ -162,7 +176,8 @@ def delete_tender(tender_id: int, current_user: User = Depends(get_current_user)
     db.delete(t)
     db.commit()
     log_event(db, "officer", "TENDER_DELETED", f"tender:{tender_id}",
-              f"{title} ({len(bids)} bid(s), {removed_files} file(s) removed)")
+              f"{title} ({len(bids)} bid(s), {removed_files} file(s) removed)",
+              organization_id=tender_organization_id)
     return {"ok": True, "deleted_bids": len(bids), "deleted_files": removed_files}
 
 
@@ -273,11 +288,13 @@ def delete_requirement(tender_id: int, req_id: int, current_user: User = Depends
     t = db.get(Tender, tender_id)
     if current_user.role != "admin" and t.organization_id != current_user.organization_id:
         raise HTTPException(403, "Not your organization's tender")
+    tender_organization_id = t.organization_id
     for dr in db.query(DynamicRule).filter_by(requirement_id=req_id).all():
         db.delete(dr)
     db.delete(r)
     db.commit()
-    log_event(db, "officer", "REQUIREMENT_DELETED", f"requirement:{req_id}")
+    log_event(db, "officer", "REQUIREMENT_DELETED", f"requirement:{req_id}",
+              organization_id=tender_organization_id)
     return {"ok": True}
 
 
@@ -315,6 +332,7 @@ def _tender_dict(t: Tender, db: Session):
     return {
         "id": t.id, "title": t.title, "organization": t.org_name, "ref_no": t.ref_no,
         "status": t.status, "ruleset_version": t.ruleset_version, "created_at": t.created_at,
+        "deadline": t.deadline or "",
         "requirements": [
             {"id": r.id, "text": r.text, "type": r.type, "priority": r.priority,
              "rule_key": r.rule_key, "approved": bool(r.approved),

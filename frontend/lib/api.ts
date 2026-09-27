@@ -48,6 +48,7 @@ export type Tender = {
   organization: string;
   ref_no: string;
   status: string;
+  deadline: string;
   ruleset_version: string;
   requirements: Requirement[];
 };
@@ -140,11 +141,15 @@ export const api = {
   listBidders: () => req("/bidders"),
 
   // Bids
-  myBids: (): Promise<{ id: number; tender_id: number; tender_title: string; pipeline_status: string; submitted_at: string; documents: string[] }[]> => req("/bids/mine"),
+  myBids: (): Promise<{ id: number; tender_id: number; tender_title: string; deadline: string; pipeline_status: string; submitted_at: string; documents: { id: number; filename: string }[] }[]> => req("/bids/mine"),
   createBid: (tender_id: number, bidder_id: number): Promise<{ id: number; pipeline_status: string; existing?: boolean }> =>
     req("/bids", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tender_id, bidder_id }) }),
-  uploadDocument: (bidId: number, form: FormData) =>
+  uploadDocument: (bidId: number, form: FormData): Promise<{ id: number; filename: string; status: string }> =>
     req(`/bids/${bidId}/documents`, { method: "POST", body: form }),
+  deleteBidDocument: (bidId: number, docId: number): Promise<{ ok: boolean }> =>
+    req(`/bids/${bidId}/documents/${docId}`, { method: "DELETE" }),
+  deleteBid: (bidId: number): Promise<{ ok: boolean; deleted_files: number }> =>
+    req(`/bids/${bidId}`, { method: "DELETE" }),
   submitBid: (bidId: number) => req(`/bids/${bidId}/submit`, { method: "POST" }),
   bidStatus: (bidId: number): Promise<{ pipeline_status: string }> => req(`/bids/${bidId}/status`),
   bidDetail: (bidId: number): Promise<BidDetail> => req(`/bids/${bidId}`),
