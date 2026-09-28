@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RoleToggle } from "@/components/auth/RoleToggle";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -81,15 +81,16 @@ export default function RegisterPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="role">Role</Label>
-              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as "bidder" | "officer" })} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bidder">Bidder (Supplier/Contractor)</SelectItem>
-                  <SelectItem value="officer">Procurement Officer</SelectItem>
-                </SelectContent>
-              </Select>
+              <RoleToggle
+                id="role"
+                value={form.role}
+                onChange={(role) => setForm({ ...form, role })}
+                disabled={busy}
+                options={[
+                  { value: "bidder", label: "Bidder", hint: "Supplier or contractor submitting bids." },
+                  { value: "officer", label: "Officer", hint: "Procurement officer publishing and reviewing tenders." },
+                ]}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="password">Password (min 8 chars)</Label>

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RoleToggle } from "@/components/auth/RoleToggle";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -57,17 +57,17 @@ export default function LoginPage() {
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="role">Sign in as</Label>
-              <Select value={role} onValueChange={(value) => value && setRole(value as typeof role)}>
-                <SelectTrigger id="role" className="h-10 w-full rounded-lg bg-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bidder">Bidder / Supplier</SelectItem>
-                  <SelectItem value="officer">Procurement Officer</SelectItem>
-                  <SelectItem value="admin">Administrator</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-slate-500">Choose the role assigned to your account.</p>
+              <RoleToggle
+                id="role"
+                value={role}
+                onChange={setRole}
+                disabled={busy}
+                options={[
+                  { value: "bidder", label: "Bidder", hint: "Sign in to submit documents and track verification." },
+                  { value: "officer", label: "Officer", hint: "Sign in to review tenders, bids and compliance results." },
+                  { value: "admin", label: "Admin", hint: "Sign in to approve registrations and manage users." },
+                ]}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
