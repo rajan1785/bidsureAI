@@ -1,22 +1,30 @@
 "use client";
 
 import { use, useCallback, useEffect, useState } from "react";
-import { API, api, BidDetail, riskColor, statusColor } from "@/lib/api";
+import { api, BidDetail, riskColor, statusColor } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  DocumentViewerProvider,
+  SourceDocButton,
+  useDocumentViewer,
+} from "@/components/documents/DocumentViewer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+
+/** Which uploaded document each government source was cross-checked against. */
+const GOVT_SOURCE_DOCS: Record<string, string> = {
+  GST: "GST_CERT",
+  PAN: "PAN_CARD",
+  UDYAM: "UDYAM_CERT",
+  EPFO: "EPFO_REG",
+};
 
 export default function BidDrilldown({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const bidId = Number(id);
   const [bid, setBid] = useState<BidDetail | null>(null);
-  const [remarks, setRemarks] = useState("");
-  const [saved, setSaved] = useState("");
-  const [viewer, setViewer] = useState<{ id: number; filename: string } | null>(null);
-  const [changing, setChanging] = useState(false);
 
   const refresh = useCallback(async () => {
     setBid(await api.bidDetail(bidId));
@@ -33,6 +41,29 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
   }, [running, refresh]);
 
   if (!bid) return <p className="text-slate-500">Loading…</p>;
+
+  return (
+    <DocumentViewerProvider documents={bid.documents}>
+      <BidReview bid={bid} bidId={bidId} running={running} refresh={refresh} />
+    </DocumentViewerProvider>
+  );
+}
+
+function BidReview({
+  bid,
+  bidId,
+  running,
+  refresh,
+}: {
+  bid: BidDetail;
+  bidId: number;
+  running: boolean;
+  refresh: () => Promise<void>;
+}) {
+  const { open, byDocType } = useDocumentViewer();
+  const [remarks, setRemarks] = useState("");
+  const [saved, setSaved] = useState("");
+  const [changing, setChanging] = useState(false);
 
   async function decide(decision: string) {
     await api.recordDecision(bidId, decision, remarks);
@@ -59,6 +90,25 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
           </div>
         )}
       </div>
+
+      {bid.documents.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Original documents
+          </span>
+          {bid.documents.map((d) => (
+            <button
+              key={d.id}
+              type="button"
+              onClick={() => open(d)}
+              className="inline-flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-blue-700 transition hover:border-blue-300 hover:bg-blue-50"
+              title={d.filename}
+            >
+              📄 {d.doc_type}
+            </button>
+          ))}
+        </div>
+      )}
 
       {bid.pipeline_status === "DRAFT" && (
         <div className="rounded-lg border border-slate-300 bg-slate-100 p-4 text-sm text-slate-600">
@@ -99,16 +149,23 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
                 </span>
               </div>
               <p className="text-sm text-slate-600">{r.reason}</p>
-              <p className="text-xs text-slate-400">
-                Rule {r.rule_id} ({r.rule_version}){r.critical && " · CRITICAL"}
-                {r.evidence?.legal_basis && (
-                  <span className="ml-2 text-amber-700">
-                    § {typeof r.evidence.legal_basis === "string"
-                      ? r.evidence.legal_basis
-                      : `${r.evidence.legal_basis.source}, ${r.evidence.legal_basis.provision}`}
-                  </span>
-                )}
-              </p>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <p className="text-xs text-slate-400">
+                  Rule {r.rule_id} ({r.rule_version}){r.critical && " · CRITICAL"}
+                  {r.evidence?.legal_basis && (
+                    <span className="ml-2 text-amber-700">
+                      § {typeof r.evidence.legal_basis === "string"
+                        ? r.evidence.legal_basis
+                        : `${r.evidence.legal_basis.source}, ${r.evidence.legal_basis.provision}`}
+                    </span>
+                  )}
+                </p>
+                <SourceDocButton
+                  doc={byDocType(r.source_doc_type)}
+                  label={`View ${r.source_doc_type ?? "source"}`}
+                  missingLabel={r.source_doc_type ? `${r.source_doc_type} not submitted` : undefined}
+                />
+              </div>
             </div>
           ))}
           {bid.risk && (
@@ -125,9 +182,9 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
           {bid.documents.map((d) => (
             <Card key={d.id}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center justify-between">
+                <CardTitle className="text-sm flex items-center justify-between gap-2 flex-wrap">
                   <button
-                    onClick={() => setViewer({ id: d.id, filename: d.filename })}
+                    onClick={() => open(d)}
                     className="text-blue-700 hover:underline text-left"
                   >
                     {d.filename} 🔍
@@ -144,10 +201,17 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
                   sha256 {d.sha256.slice(0, 16)}…
                 </p>
                 {d.fields.map((f, i) => (
-                  <p key={i} className="flex justify-between border-b py-1 last:border-0">
+                  <p key={i} className="flex justify-between gap-2 border-b py-1 last:border-0">
                     <span className="text-slate-500">{f.field}</span>
                     <span className="font-mono">{f.value}
-                      <span className="text-xs text-slate-400 ml-2">({f.evidence_location})</span>
+                      <button
+                        type="button"
+                        onClick={() => open(d)}
+                        className="ml-2 font-sans text-xs text-blue-700 hover:underline"
+                        title={`See ${f.field} in ${d.filename}`}
+                      >
+                        ({f.evidence_location}) ↗
+                      </button>
                     </span>
                   </p>
                 ))}
@@ -159,9 +223,13 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
         <TabsContent value="govt" className="space-y-3 pt-4">
           {bid.govt_records.map((g, i) => (
             <div key={i} className="rounded-lg border bg-white p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <p className="font-semibold text-sm">{g.source} <span className="font-mono font-normal text-slate-500">{g.identifier}</span></p>
                 <span className="flex gap-2 items-center">
+                  <SourceDocButton
+                    doc={byDocType(GOVT_SOURCE_DOCS[g.source])}
+                    label="Compare with document"
+                  />
                   {g.mock && <Badge variant="secondary">mock source</Badge>}
                   <Badge variant={g.status === "SUCCESS" ? "outline" : "destructive"}>{g.status}</Badge>
                 </span>
@@ -214,6 +282,14 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
                 <CardTitle className="text-sm">Record final decision (Procurement Officer)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                {bid.documents.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 bg-slate-50 p-2">
+                    <span className="text-xs text-slate-500">Check the originals before deciding:</span>
+                    {bid.documents.map((d) => (
+                      <SourceDocButton key={d.id} doc={d} label={d.doc_type} />
+                    ))}
+                  </div>
+                )}
                 <Textarea placeholder="Remarks…" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
                 <div className="flex gap-2 flex-wrap">
                   <Button onClick={() => decide("Qualified")} className="bg-emerald-600 hover:bg-emerald-700">
@@ -232,28 +308,6 @@ export default function BidDrilldown({ params }: { params: Promise<{ id: string 
           )}
         </TabsContent>
       </Tabs>
-
-      <Dialog open={!!viewer} onOpenChange={(o) => !o && setViewer(null)}>
-        <DialogContent className="sm:max-w-5xl w-[92vw] h-[88vh] flex flex-col p-4">
-          <DialogHeader className="pb-2">
-            <DialogTitle className="text-sm font-mono flex items-center gap-3">
-              {viewer?.filename}
-              <a href={`${API}/bids/documents/${viewer?.id}/file`}
-                 target="_blank" rel="noreferrer"
-                 className="text-xs text-blue-700 hover:underline font-sans">
-                open in new tab ↗
-              </a>
-            </DialogTitle>
-          </DialogHeader>
-          {viewer && (
-            <iframe
-              src={`${API}/bids/documents/${viewer.id}/file`}
-              className="flex-1 w-full rounded-md border bg-white"
-              title={viewer.filename}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

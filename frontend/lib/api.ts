@@ -17,6 +17,16 @@ async function req(path: string, init?: RequestInit) {
   return r.json();
 }
 
+/** Fetch a protected file as an object URL (the endpoint needs the bearer token). */
+export async function fetchFileObjectUrl(path: string): Promise<string> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const r = await fetch(`${API}${path}`, { headers });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return URL.createObjectURL(await r.blob());
+}
+
 export type LegalBasis = { source: string; provision: string; title: string };
 
 export type DynamicRule = {
@@ -76,7 +86,7 @@ export type BidDetail = {
     fields: { field: string; value: string; confidence: number; evidence_location: string }[];
   }[];
   govt_records: { source: string; identifier: string; status: string; payload: Record<string, unknown>; retrieved_at: string; mock: boolean }[];
-  results: { requirement_key: string; requirement_text: string; status: string; reason: string; rule_id: string; rule_version: string; critical: boolean; evidence: { legal_basis?: LegalBasis | string } & Record<string, unknown> }[];
+  results: { requirement_key: string; requirement_text: string; status: string; reason: string; rule_id: string; rule_version: string; critical: boolean; source_doc_type: string | null; evidence: { legal_basis?: LegalBasis | string } & Record<string, unknown> }[];
   risk: { score: number; risk: string; factors: string[] } | null;
   recommendation: { text: string; model: string; grounded_refs: string[] } | null;
   decision: { decision: string; remarks: string; officer: string; timestamp: string } | null;
@@ -159,6 +169,7 @@ export const api = {
     }),
   comparison: (tenderId: number): Promise<ComparisonRow[]> => req(`/tenders/${tenderId}/comparison`),
   audit: (): Promise<AuditEvent[]> => req("/audit"),
+  documentFileUrl: (docId: number) => fetchFileObjectUrl(`/bids/documents/${docId}/file`),
 
   // Admin
   listUsers: () => req("/auth/admin/users"),

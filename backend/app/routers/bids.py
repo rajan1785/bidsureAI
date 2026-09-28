@@ -26,8 +26,23 @@ from app.models import (
     User,
 )
 from app.pipeline.orchestrator import run_pipeline
+from app.pipeline.rules import load_ruleset
 
 router = APIRouter(prefix="/bids", tags=["bids"])
+
+
+def _source_doc_types() -> dict[str, str]:
+    """requirement_key -> the document type a rule is evidenced by.
+
+    Lets the officer UI offer the originating bidder document next to each
+    compliance result. Derived from the ruleset so it also covers bids that
+    were verified before this mapping existed.
+    """
+    return {
+        rule["requirement_key"]: rule["mandatory_doc"]
+        for rule in load_ruleset()["rules"]
+        if rule.get("mandatory_doc")
+    }
 
 
 def _tender_is_open(tender: Tender) -> bool:
@@ -296,6 +311,7 @@ def bid_detail(bid_id: int, current_user: User = Depends(get_current_user), db: 
     decision = (db.query(OfficerDecision).filter_by(bid_id=bid_id)
                 .order_by(OfficerDecision.id.desc()).first())
     govt = db.query(GovtRecord).filter_by(bid_id=bid_id).all()
+    source_doc_types = _source_doc_types()
 
     return {
         "id": bid.id,
@@ -322,7 +338,8 @@ def bid_detail(bid_id: int, current_user: User = Depends(get_current_user), db: 
         "results": [
             {"requirement_key": r.requirement_key, "requirement_text": r.requirement_text,
              "status": r.status, "reason": r.reason, "rule_id": r.rule_id,
-             "rule_version": r.rule_version, "evidence": r.evidence, "critical": bool(r.critical)}
+             "rule_version": r.rule_version, "evidence": r.evidence, "critical": bool(r.critical),
+             "source_doc_type": source_doc_types.get(r.requirement_key)}
             for r in results
         ],
         "risk": ({"score": risk.score, "risk": risk.risk, "factors": risk.factors}
