@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Building2, UserCheck } from "lucide-react";
 import { RoleToggle } from "@/components/auth/RoleToggle";
 
 export default function RegisterPage() {
@@ -87,8 +88,8 @@ export default function RegisterPage() {
                 onChange={(role) => setForm({ ...form, role })}
                 disabled={busy}
                 options={[
-                  { value: "bidder", label: "Bidder", hint: "Supplier or contractor submitting bids." },
-                  { value: "officer", label: "Officer", hint: "Procurement officer publishing and reviewing tenders." },
+                  { value: "bidder", label: "Bidder / Supplier", hint: "Submit & track bids", icon: Building2 },
+                  { value: "officer", label: "Procurement Officer", hint: "Verify bids & compliance", icon: UserCheck },
                 ]}
               />
             </div>

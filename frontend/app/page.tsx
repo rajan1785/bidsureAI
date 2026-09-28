@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
-import { DemoCredentials } from "@/components/DemoCredentials";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Home() {
@@ -153,8 +152,6 @@ export default function Home() {
           </Card>
         </Link>
       </section>
-
-      <DemoCredentials />
 
       <section className="mx-auto max-w-3xl rounded-lg border border-blue-100 bg-blue-50 p-5 text-center">
         <p className="font-semibold text-slate-900">Need documents to try the prototype?</p>

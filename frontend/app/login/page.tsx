@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
@@ -8,9 +8,30 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RoleToggle } from "@/components/auth/RoleToggle";
+import { Building2, Settings, UserCheck } from "lucide-react";
+import { DemoAccounts } from "@/components/auth/DemoAccounts";
+import { RoleToggle, RoleOption } from "@/components/auth/RoleToggle";
+import { DemoCredential } from "@/lib/demo-credentials";
+
+type Role = "bidder" | "officer" | "admin";
+
+const ROLE_OPTIONS: RoleOption<Role>[] = [
+  { value: "admin", label: "Admin", hint: "Manage users & settings", icon: Settings },
+  { value: "officer", label: "Procurement Officer", hint: "Verify bids & compliance", icon: UserCheck },
+  { value: "bidder", label: "Bidder / Supplier", hint: "Submit & track bids", icon: Building2 },
+];
 
 export default function LoginPage() {
+  // useSearchParams opts the subtree out of prerendering, so it needs a
+  // Suspense boundary for the production build to succeed.
+  return (
+    <Suspense fallback={<p className="mt-12 text-center text-sm text-slate-500">Loading…</p>}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
@@ -18,9 +39,17 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"bidder" | "officer" | "admin">("bidder");
+  const [role, setRole] = useState<Role>("bidder");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  /** Fill the form with a seeded account instead of making the user type it. */
+  function useDemoAccount(credential: DemoCredential) {
+    setRole(credential.role);
+    setEmail(credential.email);
+    setPassword(credential.password);
+    setError("");
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,7 +70,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto mt-12 max-w-md space-y-6">
+    <div className="mx-auto mt-12 max-w-xl space-y-6">
       <div className="text-center">
         <span className="mx-auto mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-700 text-lg font-bold text-white shadow-sm shadow-blue-900/20">B</span>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Welcome to BidSure AI</h1>
@@ -56,17 +85,13 @@ export default function LoginPage() {
         <CardContent className="pt-5">
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="role">Sign in as</Label>
+              <Label htmlFor="role">Choose your role</Label>
               <RoleToggle
                 id="role"
                 value={role}
                 onChange={setRole}
                 disabled={busy}
-                options={[
-                  { value: "bidder", label: "Bidder", hint: "Sign in to submit documents and track verification." },
-                  { value: "officer", label: "Officer", hint: "Sign in to review tenders, bids and compliance results." },
-                  { value: "admin", label: "Admin", hint: "Sign in to approve registrations and manage users." },
-                ]}
+                options={ROLE_OPTIONS}
               />
             </div>
             <div className="space-y-1.5">
@@ -82,6 +107,9 @@ export default function LoginPage() {
               {busy ? "Signing in…" : `Continue as ${role === "officer" ? "Officer" : role === "admin" ? "Admin" : "Bidder"}`}
             </Button>
           </form>
+
+          <DemoAccounts onUse={useDemoAccount} />
+
           <p className="mt-5 border-t border-slate-100 pt-4 text-center text-sm text-slate-500">
             Don't have an account? <Link href="/register" className="text-blue-700 hover:underline">Register</Link>
           </p>
