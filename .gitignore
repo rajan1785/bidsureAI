@@ -16,3 +16,15 @@ frontend/CLAUDE.md
 VIDEO_SCRIPT.txt
 backend/cache/
 .opencode
+
+# private working notes
+aditya/
+
+# misc generated
+next-env.d.ts
+.env*.local
+*.log
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
