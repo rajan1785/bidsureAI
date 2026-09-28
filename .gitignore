@@ -3,7 +3,9 @@ __pycache__/
 .venv/
 venv/
 *.db
-backend/uploads/
+# the seeded demo database and its uploads are committed so the prototype
+# can be cloned and run without re-running scripts/seed.py
+!backend/app.db
 node_modules/
 .next/
 .env

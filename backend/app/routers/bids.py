@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.audit import log_event
 from app.auth.dependencies import get_current_user, require_role
-from app.db import UPLOADS_DIR, get_db
+from app.db import UPLOADS_DIR, get_db, resolve_upload
 from app.models import (
     Bid,
     Bidder,
@@ -233,7 +233,10 @@ def document_file(doc_id: int, current_user: User = Depends(get_current_user), d
         tender = db.get(Tender, bid.tender_id)
         if tender.organization_id != current_user.organization_id:
             raise HTTPException(403, "Not your organization's tender")
-    return FileResponse(doc.file_path, filename=doc.filename,
+    path = resolve_upload(doc.file_path)
+    if not path:
+        raise HTTPException(404, "document file is missing on this server")
+    return FileResponse(path, filename=doc.filename,
                         content_disposition_type="inline")
 
 

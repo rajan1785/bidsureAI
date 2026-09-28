@@ -1,5 +1,5 @@
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
@@ -7,6 +7,23 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 DB_PATH = Path(os.environ.get("COMPLYGEM_DB", Path(__file__).parents[1] / "app.db"))
 UPLOADS_DIR = Path(__file__).parents[1] / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
+
+
+def resolve_upload(file_path: str) -> Path | None:
+    """Locate a stored upload, tolerating paths recorded on another machine.
+
+    The seeded database ships with absolute paths from the machine that ran
+    the seed script, so fall back to the file's name inside UPLOADS_DIR.
+    """
+    if not file_path:
+        return None
+    candidate = Path(file_path)
+    if candidate.is_file():
+        return candidate
+    name = PureWindowsPath(file_path).name or PurePosixPath(file_path).name
+    local = UPLOADS_DIR / name
+    return local if local.is_file() else None
+
 
 engine = create_engine(
     f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False}

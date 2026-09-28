@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.audit import log_event
 from app.auth.dependencies import get_current_user, require_role
-from app.db import UPLOADS_DIR, get_db
+from app.db import UPLOADS_DIR, get_db, resolve_upload
 from pathlib import Path
 
 from app.models import (Bid, ComplianceResult, Document, DynamicRule,
@@ -213,7 +213,10 @@ def tender_file(tender_id: int, current_user: User = Depends(get_current_user), 
         raise HTTPException(403, "Not your organization's tender")
     if current_user.role == "bidder" and t.status != "APPROVED":
         raise HTTPException(403, "Tender not open for bidding")
-    return FileResponse(t.file_path, filename=t.file_path.split("/")[-1],
+    path = resolve_upload(t.file_path)
+    if not path:
+        raise HTTPException(404, "tender document is missing on this server")
+    return FileResponse(path, filename=path.name,
                         content_disposition_type="inline")
 
 
