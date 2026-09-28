@@ -47,7 +47,7 @@ export function RoleToggle<T extends string>({
             disabled={disabled}
             onClick={() => onChange(option.value)}
             className={cn(
-              "relative rounded-xl border px-2 py-3 text-center transition",
+              "relative rounded-xl border px-1.5 py-3 text-center transition",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1",
               "disabled:cursor-not-allowed disabled:opacity-60",
               selected
@@ -68,7 +68,7 @@ export function RoleToggle<T extends string>({
             )}
             <span
               className={cn(
-                "block text-xs font-semibold leading-tight",
+                "block text-[11px] font-semibold leading-tight",
                 selected ? "text-blue-900" : "text-slate-800",
               )}
             >
@@ -77,7 +77,7 @@ export function RoleToggle<T extends string>({
             {option.hint && (
               <span
                 className={cn(
-                  "mt-0.5 block text-[11px] leading-tight",
+                  "mt-0.5 block text-[10px] leading-tight",
                   selected ? "text-blue-700/80" : "text-slate-500",
                 )}
               >

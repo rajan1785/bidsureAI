@@ -29,18 +29,18 @@ export function DemoAccounts({ onUse }: { onUse: (credential: DemoCredential) =>
           const Icon = ICONS[cred.role];
           return (
             <div key={cred.role} className="rounded-lg border border-slate-200 bg-white p-3">
-              <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-900">
-                <Icon className="h-3.5 w-3.5 text-slate-500" aria-hidden />
+              <p className="flex items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold text-slate-900">
+                <Icon className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
                 {cred.label}
               </p>
-              <p className="mt-2 truncate font-mono text-[11px] text-slate-500" title={cred.email}>
+              <p className="mt-2 font-mono text-[10px] tracking-tighter text-slate-500" title={cred.email}>
                 {cred.email}
               </p>
-              <p className="font-mono text-[11px] text-slate-500">{cred.password}</p>
+              <p className="font-mono text-[10px] tracking-tighter text-slate-500">{cred.password}</p>
               <button
                 type="button"
                 onClick={() => onUse(cred)}
-                className="mt-2 w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-blue-700 transition hover:border-blue-400 hover:bg-blue-50"
+                className="mt-2 w-full whitespace-nowrap rounded-md border border-slate-300 bg-white px-1 py-1 text-[11px] font-medium text-blue-700 transition hover:border-blue-400 hover:bg-blue-50"
               >
                 Use Demo Account
               </button>

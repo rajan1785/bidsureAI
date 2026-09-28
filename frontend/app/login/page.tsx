@@ -5,11 +5,24 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BarChart3, Building2, FileSearch, Settings, ShieldCheck, UserCheck, Users } from "lucide-react";
+import {
+  BarChart3,
+  Building2,
+  Eye,
+  EyeOff,
+  FileSearch,
+  Lock,
+  Mail,
+  Settings,
+  ShieldCheck,
+  UserCheck,
+  Users,
+} from "lucide-react";
 import { DemoAccounts } from "@/components/auth/DemoAccounts";
+import { LoginArtwork } from "@/components/auth/LoginArtwork";
 import { RoleToggle, RoleOption } from "@/components/auth/RoleToggle";
 import { DemoCredential } from "@/lib/demo-credentials";
 
@@ -63,6 +76,8 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("bidder");
+  const [showPassword, setShowPassword] = useState(false);
+  const [hint, setHint] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -72,6 +87,7 @@ function LoginForm() {
     setEmail(credential.email);
     setPassword(credential.password);
     setError("");
+    setHint("");
   }
 
   async function submit(e: React.FormEvent) {
@@ -93,22 +109,22 @@ function LoginForm() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Same decorative language as the landing hero: deep blue gradient
-          with translucent rings bleeding past the edges. */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-950 via-blue-900 to-blue-700 px-6 py-10 text-center text-white shadow-lg shadow-blue-950/10">
-        <div className="pointer-events-none absolute -right-16 -top-28 h-72 w-72 rounded-full border-[30px] border-white/5" />
-        <div className="pointer-events-none absolute -bottom-36 left-10 h-64 w-64 rounded-full border-[26px] border-white/5" />
-        <div className="relative mx-auto max-w-2xl space-y-3">
-          <span className="mx-auto inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white text-lg font-bold text-blue-800 shadow-sm">B</span>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Welcome to BidSure AI</h1>
-          <p className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wide text-blue-100">
-            AI-powered compliance verification
-          </p>
-        </div>
-      </section>
+    <div className="relative">
+      {/* Soft page wash behind the whole sign-in view. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-white via-slate-50 to-blue-100/50"
+      />
 
-      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,32rem)]">
+      <div className="text-center">
+        <span className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-700 text-xl font-bold text-white shadow-md shadow-blue-900/20">
+          B
+        </span>
+        <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">Welcome to BidSure AI</h1>
+        <p className="mt-1 text-sm text-slate-500">Sign in to your account using email and password</p>
+      </div>
+
+      <div className="mt-6 grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)_minmax(0,1fr)]">
         <aside className="hidden lg:block">
           <h2 className="text-3xl font-bold leading-tight tracking-tight text-slate-900">
             Simplifying <span className="text-blue-700">Procurement</span> with AI
@@ -119,7 +135,7 @@ function LoginForm() {
           <ul className="mt-6 space-y-4">
             {HIGHLIGHTS.map(({ icon: Icon, title, description }) => (
               <li key={title} className="flex gap-3">
-                <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-700">
+                <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-blue-100/70 text-blue-700">
                   <Icon className="h-4 w-4" aria-hidden />
                 </span>
                 <div>
@@ -131,44 +147,92 @@ function LoginForm() {
           </ul>
         </aside>
 
-        <Card className="border-slate-200 shadow-md shadow-slate-900/5">
-        <CardHeader className="border-b border-slate-100 pb-4">
-          <CardTitle className="text-base font-semibold">Sign in</CardTitle>
-          <p className="text-sm text-slate-500">Use your registered email and password.</p>
-        </CardHeader>
-        <CardContent className="pt-5">
-          <form onSubmit={submit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="role">Choose your role</Label>
-              <RoleToggle
-                id="role"
-                value={role}
-                onChange={setRole}
-                disabled={busy}
-                options={ROLE_OPTIONS}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="name@organization.com" className="h-10 rounded-lg bg-white" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-10 rounded-lg bg-white" />
-            </div>
-            {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error.replace(/^Error: /, "")}</p>}
-            <Button type="submit" disabled={busy} className="h-10 w-full bg-blue-700 font-semibold hover:bg-blue-800">
-              {busy ? "Signing in…" : `Continue as ${role === "officer" ? "Officer" : role === "admin" ? "Admin" : "Bidder"}`}
-            </Button>
-          </form>
+        <Card className="border-slate-200 bg-white shadow-xl shadow-slate-900/5">
+          <CardContent className="pt-1">
+            <form onSubmit={submit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="role">Choose your role</Label>
+                <RoleToggle
+                  id="role"
+                  value={role}
+                  onChange={setRole}
+                  disabled={busy}
+                  options={ROLE_OPTIONS}
+                />
+              </div>
 
-          <DemoAccounts onUse={useDemoAccount} />
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email address</Label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden />
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="username"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    placeholder="name@organization.com"
+                    className="h-11 rounded-lg bg-slate-50 pl-9"
+                  />
+                </div>
+              </div>
 
-          <p className="mt-5 border-t border-slate-100 pt-4 text-center text-sm text-slate-500">
-            Don't have an account? <Link href="/register" className="text-blue-700 hover:underline">Register</Link>
-          </p>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="password">Password</Label>
+                  <button
+                    type="button"
+                    onClick={() => setHint("Password resets are handled by your administrator — ask them to reset it for you.")}
+                    className="text-xs font-medium text-blue-700 hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="h-11 rounded-lg bg-slate-50 px-9"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {hint && <p className="text-xs text-slate-500">{hint}</p>}
+              </div>
+
+              {error && (
+                <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {error.replace(/^Error: /, "")}
+                </p>
+              )}
+
+              <Button type="submit" disabled={busy} className="h-11 w-full rounded-lg bg-blue-700 text-sm font-semibold hover:bg-blue-800">
+                {busy ? "Signing in…" : "Continue"}
+              </Button>
+            </form>
+
+            <DemoAccounts onUse={useDemoAccount} />
+
+            <p className="mt-5 border-t border-slate-100 pt-4 text-center text-sm text-slate-500">
+              Don&apos;t have an account?{" "}
+              <Link href="/register" className="font-medium text-blue-700 hover:underline">Register</Link>
+            </p>
           </CardContent>
         </Card>
+
+        <LoginArtwork />
       </div>
     </div>
   );
