@@ -139,11 +139,8 @@ function LoginForm() {
         </aside>
 
         <div className="mx-auto w-full max-w-xl">
-  <div className="text-center">
-          <span className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-700 text-xl font-bold text-white shadow-md shadow-blue-900/20">
-            B
-          </span>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">Welcome to BidSure AI</h1>
+        <div className="text-center">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Welcome to BidSure AI</h1>
           <p className="mt-1 text-sm text-slate-500">Sign in to your account using email and password</p>
         </div>
 
