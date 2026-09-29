@@ -179,6 +179,24 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Sample documents */}
+      <Reveal as="section" className="rounded-2xl border border-gov-saffron/40 bg-gov-saffron-soft p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
+        <div>
+          <h2 className="text-lg font-semibold text-gov-heading">Trying the prototype?</h2>
+          <p className="mt-1 max-w-[60ch] text-sm leading-relaxed text-gov-text">
+            Sample tender and bidder documents are available if you need paperwork to
+            upload.
+          </p>
+        </div>
+        <a
+          href="https://drive.google.com/drive/folders/1jusSpynh7eabU4uxHaunR0Of82V6NobM?usp=drive_link"
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 inline-flex min-h-11 shrink-0 items-center rounded-lg border border-gov-saffron bg-gov-surface px-5 font-medium text-gov-saffron-ink transition hover:bg-gov-saffron-soft sm:mt-0"
+        >
+          Download samples (new tab)
+        </a>
+      </Reveal>
       {/* Stats */}
       <Reveal as="section" aria-label="BidSure at a glance">
         <dl className="grid grid-cols-2 divide-gov-border overflow-hidden rounded-2xl border border-gov-border bg-gov-surface shadow-sm sm:grid-cols-4 sm:divide-x">
@@ -325,24 +343,6 @@ export default function Home() {
         </ul>
       </Reveal>
 
-      {/* Sample documents */}
-      <Reveal as="section" className="rounded-2xl border border-gov-saffron/40 bg-gov-saffron-soft p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
-        <div>
-          <h2 className="text-lg font-semibold text-gov-heading">Trying the prototype?</h2>
-          <p className="mt-1 max-w-[60ch] text-sm leading-relaxed text-gov-text">
-            Sample tender and bidder documents are available if you need paperwork to
-            upload.
-          </p>
-        </div>
-        <a
-          href="https://drive.google.com/drive/folders/1jusSpynh7eabU4uxHaunR0Of82V6NobM?usp=drive_link"
-          target="_blank"
-          rel="noreferrer"
-          className="mt-4 inline-flex min-h-11 shrink-0 items-center rounded-lg border border-gov-saffron bg-gov-surface px-5 font-medium text-gov-saffron-ink transition hover:bg-gov-saffron-soft sm:mt-0"
-        >
-          Download samples (new tab)
-        </a>
-      </Reveal>
     </div>
   );
 }
