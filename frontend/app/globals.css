@@ -128,9 +128,303 @@
     @apply font-sans;
   }
   button, a, input, select, textarea {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:ring-offset-2;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gov-focus focus-visible:ring-offset-2;
   }
   ::selection {
     background: oklch(0.86 0.08 264);
   }
+}
+
+/* BidSure — Indian public service product.
+   Blue-led like GeM and UMANG, with saffron and green as accents only.
+   Carries the accessibility affordances portals are expected to have
+   (GIGW 3.0): skip link, resizable text, high contrast, visible focus. */
+@theme inline {
+  --color-gov-bg: var(--gov-bg);
+  --color-gov-surface: var(--gov-surface);
+  --color-gov-navy: var(--gov-navy);
+  --color-gov-heading: var(--gov-heading);
+  --color-gov-blue: var(--gov-blue);
+  --color-gov-blue-dark: var(--gov-blue-dark);
+  --color-gov-blue-soft: var(--gov-blue-soft);
+  --color-gov-on-blue: var(--gov-on-blue);
+  --color-gov-saffron: var(--gov-saffron);
+  --color-gov-saffron-soft: var(--gov-saffron-soft);
+  --color-gov-saffron-ink: var(--gov-saffron-ink);
+  --color-gov-green: var(--gov-green);
+  --color-gov-green-soft: var(--gov-green-soft);
+  --color-gov-border: var(--gov-border);
+  --color-gov-text: var(--gov-text);
+  --color-gov-muted: var(--gov-muted);
+  --color-gov-focus: var(--gov-focus);
+  --font-sans: var(--font-noto-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --gov-bg: #f4f7fb;
+  --gov-surface: #ffffff;
+  --gov-navy: #0b2545;
+  --gov-heading: #0b2545;
+  --gov-blue: #0b5fbf;
+  --gov-blue-dark: #094a96;
+  --gov-blue-soft: #e7f0fb;
+  --gov-on-blue: #ffffff;
+  --gov-saffron: #ff9933;
+  --gov-saffron-soft: #fff1e0;
+  --gov-saffron-ink: #8a4b00;
+  --gov-green: #138808;
+  --gov-green-soft: #e6f4e5;
+  --gov-border: #d7e2ee;
+  --gov-text: #16212e;
+  --gov-muted: #4b5a6b;
+  --gov-focus: #0b5fbf;
+}
+
+/* High contrast, as public portals provide it: black ground, white text,
+   yellow interactive elements. Every token above has an answer here, or
+   something goes invisible. */
+html[data-contrast="high"] {
+  --gov-bg: #000000;
+  --gov-surface: #000000;
+  --gov-navy: #000000;
+  --gov-heading: #ffffff;
+  --gov-blue: #ffe600;
+  --gov-blue-dark: #fff59d;
+  --gov-blue-soft: #000000;
+  --gov-on-blue: #000000;
+  --gov-saffron: #ffe600;
+  --gov-saffron-soft: #000000;
+  --gov-saffron-ink: #ffe600;
+  --gov-green: #7cfc00;
+  --gov-green-soft: #000000;
+  --gov-border: #ffffff;
+  --gov-text: #ffffff;
+  --gov-muted: #ffffff;
+  --gov-focus: #ffe600;
+}
+
+/* Shadows carry no meaning without colour, so they go in high contrast and
+   borders do the work instead. */
+html[data-contrast="high"] * {
+  box-shadow: none !important;
+}
+
+/* Text resizing from the accessibility bar. Everything is sized in rem. */
+html { font-size: 100%; }
+html[data-textsize="large"] { font-size: 112.5%; }
+html[data-textsize="largest"] { font-size: 125%; }
+
+@layer base {
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 3px solid var(--gov-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* Scroll reveals. The hidden state is scoped to html.js, which the pre-paint
+   script sets, so if the script never runs nothing is ever hidden. Only
+   opacity and transform animate, so revealing costs no layout. */
+html.js .reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  will-change: opacity, transform;
+}
+
+html.js .reveal[data-visible="true"] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 480ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 480ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: auto;
+}
+
+/* Anyone who asks for less motion gets the page whole and still. */
+@media (prefers-reduced-motion: reduce) {
+  html.js .reveal,
+  html.js .reveal[data-visible="true"] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Anchor links from the footer should not drop content under the sticky
+   masthead. */
+html {
+  scroll-behavior: smooth;
+}
+
+[id] {
+  scroll-margin-top: 6rem;
+}
+
+/* Hero illustration sequence.
+   The finished drawing is the default: these rules only apply once the SVG
+   carries `hero-play`, which React adds when it is on screen and motion is
+   allowed. Nothing here can leave the illustration half-drawn. */
+@keyframes hd-doc-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes hd-line-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes hd-draw {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes hd-card-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes hd-node-in {
+  from { opacity: 0; transform: scale(0.2); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* The open item keeps breathing, because it is still waiting on a person. */
+@keyframes hd-pending-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+html.js .hero-play .hd-doc {
+  animation: hd-doc-in 560ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  transform-origin: 112px 150px;
+}
+
+html.js .hero-play .hd-line {
+  animation: hd-line-in 380ms ease-out both;
+}
+
+html.js .hero-play .hd-wire path {
+  stroke-dasharray: 1;
+  animation: hd-draw 520ms ease-in-out both;
+}
+
+html.js .hero-play .hd-node {
+  animation: hd-node-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: 620ms;
+  transform-origin: 200px 150px;
+}
+
+html.js .hero-play .hd-card {
+  animation: hd-card-in 460ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+html.js .hero-play .hd-check {
+  stroke-dasharray: 1;
+  animation: hd-draw 380ms ease-out both;
+}
+
+html.js .hero-play .hd-pending {
+  animation: hd-pending-pulse 2400ms ease-in-out 2100ms infinite;
+}
+
+/* Belt and braces: even if the class were applied, reduced motion wins. */
+@media (prefers-reduced-motion: reduce) {
+  html.js .hero-play .hd-doc,
+  html.js .hero-play .hd-line,
+  html.js .hero-play .hd-wire path,
+  html.js .hero-play .hd-node,
+  html.js .hero-play .hd-card,
+  html.js .hero-play .hd-check,
+  html.js .hero-play .hd-pending {
+    animation: none;
+    stroke-dasharray: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   High contrast: forced colours across the whole app.
+
+   The token-driven pages invert on their own, but the sign-in, register and
+   dashboard screens are written in literal slate/blue utilities and would stay
+   white. Rather than rewrite every one of those files, this layer flattens all
+   surfaces and repaints text, the way a platform high-contrast mode does.
+
+   SVG is deliberately excluded: its fills come from the palette tokens, which
+   already invert correctly.
+   --------------------------------------------------------------------------- */
+html[data-contrast="high"] body {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* :where() keeps this blanket at specificity (0,1,1) so the interactive
+   rules below can still win. Without it the :not() chain scores (0,1,4) and
+   every link and button stays white. */
+html[data-contrast="high"] body :where(*:not(svg):not(svg *)) {
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+
+/* Interactive text is yellow, the long-standing high-contrast convention. */
+html[data-contrast="high"] a,
+html[data-contrast="high"] a *:not(svg):not(svg *),
+html[data-contrast="high"] button,
+html[data-contrast="high"] button *:not(svg):not(svg *) {
+  color: #ffe600 !important;
+}
+
+/* The one primary action per form stays solid so it still reads as the
+   thing to press. */
+html[data-contrast="high"] button[type="submit"],
+html[data-contrast="high"] button[type="submit"] *:not(svg):not(svg *) {
+  background-color: #ffe600 !important;
+  color: #000000 !important;
+  border-color: #ffe600 !important;
+}
+
+/* Fields need a border of their own: many carry only a background tint. */
+html[data-contrast="high"] input,
+html[data-contrast="high"] select,
+html[data-contrast="high"] textarea {
+  border: 2px solid #ffffff !important;
+  color: #ffffff !important;
+}
+
+html[data-contrast="high"] ::placeholder {
+  color: #c9c9c9 !important;
+  opacity: 1 !important;
+}
+
+/* Chosen option in a radio group, which otherwise loses its blue tint. */
+html[data-contrast="high"] [aria-checked="true"],
+html[data-contrast="high"] [aria-current="page"],
+html[data-contrast="high"] [aria-pressed="true"] {
+  outline: 3px solid #ffe600 !important;
+  outline-offset: -3px;
+}
+
+/* Disabled controls must still be legible, just clearly inert. */
+html[data-contrast="high"] :disabled,
+html[data-contrast="high"] :disabled *:not(svg):not(svg *) {
+  color: #9a9a9a !important;
+  border-color: #9a9a9a !important;
+}
+
+/* Icon fonts carry their own colour utilities (text-slate-500, text-blue-700)
+   which survive the blanket because SVG is excluded from it. Let them inherit
+   instead, so an icon matches the text it sits with. The hero illustration is
+   unaffected: it is drawn in palette tokens, not lucide classes. */
+html[data-contrast="high"] svg.lucide {
+  color: inherit !important;
 }
