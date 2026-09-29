@@ -12,8 +12,10 @@ class UserCreate(BaseModel):
     @field_validator("role")
     @classmethod
     def validate_role(cls, v: str) -> str:
-        if v not in ("bidder", "officer", "admin"):
-            raise ValueError("Role must be 'bidder', 'officer', or 'admin'")
+        # Registration is bidder/officer only. Admin is granted by an existing
+        # admin, never claimed by the caller.
+        if v not in ("bidder", "officer"):
+            raise ValueError("Role must be 'bidder' or 'officer'")
         return v
 
     @field_validator("password")

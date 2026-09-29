@@ -1,4 +1,5 @@
 fastapi==0.141.1
+email-validator==2.3.0
 httpx==0.28.1
 joblib==1.5.3
 numpy==2.5.2
@@ -7,6 +8,7 @@ pytest==9.1.1
 python-jose[cryptography]==3.3.0
 python-multipart==0.0.32
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 PyYAML==6.0.3
 reportlab==5.0.1
 requests==2.34.2

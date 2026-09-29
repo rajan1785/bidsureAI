@@ -3,7 +3,7 @@ from app.models import Bid, Bidder, ComplianceResult, Tender
 
 
 def test_model_round_trip(db):
-    t = Tender(title="Security Services Tender", organization="University of Delhi")
+    t = Tender(title="Security Services Tender", org_name="University of Delhi")
     b = Bidder(legal_name="Shakti Facility Services Pvt Ltd", pan="AAECS1234F")
     db.add_all([t, b])
     db.commit()

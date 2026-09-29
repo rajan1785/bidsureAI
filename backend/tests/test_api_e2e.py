@@ -7,6 +7,8 @@ import time
 from pathlib import Path
 
 import httpx
+from datetime import datetime, timedelta, timezone
+
 import pytest
 
 os.environ["GOVT_API_URL"] = "http://127.0.0.1:9001"
@@ -39,6 +41,11 @@ DOCS_A = {
     "epfo_reg.txt": "Employees' Provident Fund Organisation\nEstablishment Code: DLCPM0012345000\nValid Until: 31/03/2027",
     "psara_licence.txt": "Licence under the Private Security Agencies (Regulation) Act 2005\nLicense No: PSARA/DL/2023/04412\nValid upto: 31/12/2026",
 }
+
+
+def _future_deadline(days: int = 30) -> str:
+    """Tender creation rejects a deadline in the past."""
+    return (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
 
 
 def _auth_headers(token: str) -> dict:
@@ -144,7 +151,11 @@ def test_full_flow_bidder_a(tmp_path, test_users):
     tender_file.write_text(TENDER_TEXT)
     r = client.post(
         "/api/v1/tenders",
-        data={"title": "Security Services Tender", "organization": "University of Delhi"},
+        data={
+            "title": "Security Services Tender",
+            "organization": "University of Delhi",
+            "deadline": _future_deadline(),
+        },
         files={"file": ("tender.txt", tender_file.read_bytes(), "text/plain")},
         headers=_auth_headers(test_users["officer_token"]),
     )
@@ -208,7 +219,8 @@ def test_delete_tender_cascades(tmp_path, test_users):
     # create a throwaway tender + bid + doc, then delete everything
     tf = tmp_path / "t.txt"
     tf.write_text("Bidder must possess GST registration and PAN.")
-    t = client.post("/api/v1/tenders", data={"title": "Delete Me"},
+    t = client.post("/api/v1/tenders",
+                    data={"title": "Delete Me", "deadline": _future_deadline()},
                     files={"file": ("t.txt", tf.read_bytes(), "text/plain")},
                     headers=_auth_headers(test_users["officer_token"])).json()
     # approve tender first

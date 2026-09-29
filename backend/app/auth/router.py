@@ -27,8 +27,8 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(400, "Email already registered")
 
     hashed_pwd = security.get_password_hash(user_in.password)
-    # New users start as INACTIVE (admin must approve), except admin role
-    is_active = 1 if user_in.role == "admin" else 0
+    # Every new account starts inactive and waits for an admin to approve it.
+    is_active = 0
 
     user = User(
         email=user_in.email,

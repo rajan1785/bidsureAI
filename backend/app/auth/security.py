@@ -1,12 +1,24 @@
 """Security utilities: password hashing, JWT tokens."""
+import logging
+import os
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 
 from jose import jwt
 from passlib.context import CryptContext
 
-# Use a strong secret key - in production, load from environment/secrets manager
-SECRET_KEY = "CHANGE_ME_IN_PRODUCTION_USE_STRONG_RANDOM_KEY_32_CHARS_MIN"
+# Signing key comes from the environment. A key committed to the repository
+# lets anyone mint a token for any deployment, including {"role": "admin"}.
+# With nothing set we generate one per process: sessions then end at restart,
+# which is inconvenient but not forgeable.
+SECRET_KEY = os.environ.get("SECRET_KEY", "").strip()
+if not SECRET_KEY:
+    SECRET_KEY = secrets.token_urlsafe(48)
+    logging.getLogger(__name__).warning(
+        "SECRET_KEY is not set; using a random key for this process. "
+        "Sessions will not survive a restart. Set SECRET_KEY in the environment."
+    )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
