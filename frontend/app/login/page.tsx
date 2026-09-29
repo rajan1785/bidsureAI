@@ -22,7 +22,6 @@ import {
   Users,
 } from "lucide-react";
 import { DemoAccounts } from "@/components/auth/DemoAccounts";
-import { LoginArtwork } from "@/components/auth/LoginArtwork";
 import { RoleToggle, RoleOption } from "@/components/auth/RoleToggle";
 import { DemoCredential } from "@/lib/demo-credentials";
 
@@ -116,15 +115,7 @@ function LoginForm() {
         className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-white via-slate-50 to-blue-100/50"
       />
 
-      <div className="text-center">
-        <span className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-700 text-xl font-bold text-white shadow-md shadow-blue-900/20">
-          B
-        </span>
-        <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">Welcome to BidSure AI</h1>
-        <p className="mt-1 text-sm text-slate-500">Sign in to your account using email and password</p>
-      </div>
-
-      <div className="mt-6 grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)_minmax(0,1fr)]">
+      <div className="grid items-start gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
         <aside className="hidden lg:block">
           <h2 className="text-3xl font-bold leading-tight tracking-tight text-slate-900">
             Simplifying <span className="text-blue-700">Procurement</span> with AI
@@ -147,7 +138,16 @@ function LoginForm() {
           </ul>
         </aside>
 
-        <Card className="border-slate-200 bg-white shadow-xl shadow-slate-900/5">
+        <div className="mx-auto w-full max-w-xl">
+  <div className="text-center">
+          <span className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-700 text-xl font-bold text-white shadow-md shadow-blue-900/20">
+            B
+          </span>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">Welcome to BidSure AI</h1>
+          <p className="mt-1 text-sm text-slate-500">Sign in to your account using email and password</p>
+        </div>
+
+          <Card className="mt-6 border-slate-200 bg-white shadow-xl shadow-slate-900/5">
           <CardContent className="pt-1">
             <form onSubmit={submit} className="space-y-4">
               <div className="space-y-2">
@@ -230,9 +230,8 @@ function LoginForm() {
               <Link href="/register" className="font-medium text-blue-700 hover:underline">Register</Link>
             </p>
           </CardContent>
-        </Card>
-
-        <LoginArtwork />
+          </Card>
+        </div>
       </div>
     </div>
   );
