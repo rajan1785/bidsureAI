@@ -34,11 +34,34 @@ DEMO_OFFICER = {"email": "officer@demo.gov.in", "password": "demo1234", "full_na
 DEMO_BIDDER = {"email": "bidder@demo.com", "password": "demo1234", "full_name": "Demo Bidder", "role": "bidder", "organization_name": "Shakti Facility Services Pvt Ltd"}
 
 
+def _ensure_bidder_profile(db, user):
+    """A bidder user is unusable without a linked Bidder row: POST /bidders
+    answers 404 "Bidder profile not found", so the portal cannot save firm
+    details and the seed never reaches the bid step. Registration creates this
+    row; seeding has to do the same, including for a user seeded before it did.
+    """
+    from app.models import Bidder
+    if user.role != "bidder":
+        return
+    profile = db.query(Bidder).filter_by(user_id=user.id).first()
+    if profile is None:
+        profile = Bidder(
+            legal_name=user.full_name or user.email,
+            organization_id=user.organization_id,
+            user_id=user.id,
+        )
+        db.add(profile)
+        db.flush()
+    if user.bidder_id != profile.id:
+        user.bidder_id = profile.id
+
+
 def _get_or_create_user(db, user_data):
     """Get existing user or create new one."""
     from app.models import User
     user = db.query(User).filter_by(email=user_data["email"]).first()
     if user:
+        _ensure_bidder_profile(db, user)
         return user
     from app.auth.security import get_password_hash
     from app.models import Organization
@@ -57,6 +80,7 @@ def _get_or_create_user(db, user_data):
     )
     db.add(user)
     db.flush()
+    _ensure_bidder_profile(db, user)
     return user
 
 
